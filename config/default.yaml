@@ -1,0 +1,115 @@
+# Default configuration for Trading Bot
+
+# Environment
+environment: "development"
+debug: true
+paper_trading: true
+
+# Exchange Configuration
+exchange:
+  name: "bybit"
+  api_key: "${BYBIT_API_KEY}"
+  api_secret: "${BYBIT_API_SECRET}"
+  testnet: true
+  rate_limit: 10
+
+# Trading Configuration
+trading:
+  symbol: "SOLUSDT"
+  timeframes:
+    - "1m"
+    - "3m"
+    - "5m"
+    - "15m"
+    - "1h"
+  max_position_size: 0.02  # 2% of account balance
+  min_order_size: 10.0  # $10 minimum
+  leverage: 3
+  
+  # Entry conditions
+  min_signal_confidence: 0.15
+  min_volume_ratio: 1.0
+  min_adx: 20.0
+  
+  # Exit conditions
+  take_profit_levels: [1.0, 1.5, 2.5]  # ATR multiples
+  take_profit_ratios: [0.4, 0.3, 0.2]  # Position percentages
+  stop_loss_atr: 1.2
+  trailing_stop_enabled: true
+  time_stop_hours: 2
+
+# Risk Management
+risk:
+  max_daily_loss: 0.03  # 3%
+  max_drawdown: 0.10  # 10%
+  max_consecutive_losses: 3
+  pause_after_losses_hours: 2
+  max_correlation: 0.8
+  max_positions: 3
+  position_sizing_method: "kelly"  # kelly, fixed, volatility
+  kelly_fraction: 0.25
+
+# Machine Learning
+ml:
+  model_version: "v1.0.0"
+  retrain_interval_hours: 168  # Weekly
+  min_training_samples: 1000
+  feature_importance_threshold: 0.001
+  prediction_threshold: 0.6
+  ensemble_weights:
+    xgboost: 0.4
+    lightgbm: 0.3
+    catboost: 0.3
+
+# Database Configuration
+database:
+  postgres_url: "${DATABASE_URL}"
+  redis_url: "${REDIS_URL}"
+  influxdb_url: "${INFLUXDB_URL}"
+  influxdb_token: "${INFLUXDB_TOKEN}"
+  influxdb_org: "${INFLUXDB_ORG}"
+  influxdb_bucket: "trading-bot"
+
+# Notifications
+notifications:
+  telegram_enabled: true
+  telegram_bot_token: "${TELEGRAM_BOT_TOKEN}"
+  telegram_chat_id: "${TELEGRAM_CHAT_ID}"
+  
+  critical_alerts:
+    - "position_without_sl"
+    - "disconnection"
+    - "daily_loss_limit"
+    - "max_drawdown"
+    - "emergency_stop"
+  
+  important_alerts:
+    - "approaching_limits"
+    - "high_slippage"
+    - "low_liquidity"
+    - "model_degradation"
+
+# Monitoring
+monitoring:
+  prometheus_enabled: true
+  prometheus_port: 8000
+  log_level: "INFO"
+  log_format: "json"
+  heartbeat_interval: 300  # 5 minutes
+
+# Performance Settings
+max_workers: 4
+cache_ttl: 300  # 5 minutes
+
+# Paths
+models_path: "models/"
+logs_path: "logs/"
+
+# Order Execution
+execution:
+  default_strategy: "SMART"
+  max_slippage: 0.002  # 0.2%
+  order_timeout: 30  # seconds
+  liquidity_threshold: 1000.0  # $1000
+  iceberg_chunk_size: 0.1  # 10%
+  twap_intervals: 5
