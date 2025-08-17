@@ -34,10 +34,10 @@ class TradingSignalGenerator:
         self.feature_engine = FeatureEngine()
         self.indicator_calc = TechnicalIndicatorCalculator()
         
-        # Signal filtering parameters
-        self.min_ml_confidence = config.get("min_signal_confidence", 0.15)
-        self.min_volume_ratio = config.get("min_volume_ratio", 1.0)
-        self.min_adx = config.get("min_adx", 20.0)
+        # Signal filtering parameters - optimized for real market conditions
+        self.min_ml_confidence = config.get("min_signal_confidence", 0.08)  # Lowered from 0.15
+        self.min_volume_ratio = config.get("min_volume_ratio", 0.6)  # Reduced from 1.0
+        self.min_adx = config.get("min_adx", 15.0)  # Reduced from 20.0
         
         # Signal tracking
         self.signal_history: List[Signal] = []
@@ -340,7 +340,7 @@ class TradingSignalGenerator:
             if abs(ml_prediction) < self.min_ml_confidence:
                 return None
             
-            # Filter 3: Volume confirmation
+            # Filter 3: Volume confirmation (relaxed for real market conditions)
             volume_ratio = features.get('volume_ratio', 1.0)
             if volume_ratio < self.min_volume_ratio:
                 return None
@@ -430,8 +430,8 @@ class TradingSignalGenerator:
         last_signal = self.last_signals[symbol]
         time_since_last = datetime.now() - last_signal.timestamp
         
-        # Minimum time between signals (prevent overtrading)
-        min_interval = timedelta(minutes=30)
+        # Minimum time between signals (reduced for more opportunities)
+        min_interval = timedelta(minutes=15)
         
         return time_since_last < min_interval
     

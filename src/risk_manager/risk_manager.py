@@ -68,7 +68,7 @@ class RiskManager:
         self.config = config
         self.logger = TradingLogger("risk_manager")
         
-        # Risk limits
+        # Risk limits (aligned with algorithm)
         self.max_daily_loss = config.get("max_daily_loss", 0.03)  # 3%
         self.max_drawdown = config.get("max_drawdown", 0.10)  # 10%
         self.max_position_size = config.get("max_position_size", 0.02)  # 2%
@@ -76,6 +76,18 @@ class RiskManager:
         self.max_correlation = config.get("max_correlation", 0.8)
         self.max_positions = config.get("max_positions", 3)
         self.pause_after_losses_hours = config.get("pause_after_losses_hours", 2)
+        
+        # Algorithm-specific emergency stops
+        self.extreme_1m_move = config.get("extreme_1m_move", 0.05)  # 5% in 1 minute
+        self.black_swan_dd = config.get("black_swan_dd", 0.15)  # 15% drawdown
+        self.max_slippage_pct = config.get("max_slippage_pct", 0.001)  # 0.1%
+        
+        # Drawdown management levels
+        self.dd_levels = config.get("dd_levels", {
+            0.05: {'position_mult': 0.5, 'conf_boost': 0},
+            0.08: {'position_mult': 0.3, 'conf_boost': 0.10},
+            0.10: {'position_mult': 0, 'conf_boost': None}
+        })
         
         # Position sizing
         self.position_sizing_method = config.get("position_sizing_method", "kelly")
@@ -701,3 +713,122 @@ class RiskManager:
             component="risk_manager",
             status="resumed",
         )
+    
+    def check_emergency_conditions(self, market_data: Dict[str, Any]) -> Optional[RiskAction]:
+        """
+        Check for emergency conditions requiring immediate action
+        Aligned with algorithm specification
+        """
+        # Check extreme 1-minute moves
+        extreme_move = self._check_extreme_price_move(market_data)
+        if extreme_move:
+            return extreme_move
+        
+        # Check black swan drawdown
+        black_swan = self._check_black_swan_drawdown()
+        if black_swan:
+            return black_swan
+        
+        # Check excessive slippage
+        slippage_check = self._check_excessive_slippage(market_data)
+        if slippage_check:
+            return slippage_check
+        
+        return None
+    
+    def _check_extreme_price_move(self, market_data: Dict[str, Any]) -> Optional[RiskAction]:
+        """Check for 5%+ move in 1 minute"""
+        price_data = market_data.get('price_1m', [])
+        if len(price_data) < 2:
+            return None
+        
+        current_price = price_data[-1]
+        prev_price = price_data[-2]
+        
+        price_change = abs(current_price - prev_price) / prev_price
+        
+        if price_change >= self.extreme_1m_move:
+            self._create_risk_event(
+                risk_type="extreme_price_move",
+                risk_level=RiskLevel.CRITICAL,
+                symbol="SOLUSDT",
+                description=f"Extreme 1m price move: {price_change:.2%}",
+                current_value=price_change,
+                threshold=self.extreme_1m_move,
+                action=RiskAction.EMERGENCY_STOP
+            )
+            return RiskAction.EMERGENCY_STOP
+        
+        return None
+    
+    def _check_black_swan_drawdown(self) -> Optional[RiskAction]:
+        """Check for black swan drawdown (15%+)"""
+        current_dd = self._calculate_current_drawdown()
+        
+        if current_dd >= self.black_swan_dd:
+            self._create_risk_event(
+                risk_type="black_swan_drawdown",
+                risk_level=RiskLevel.CRITICAL,
+                symbol="ALL",
+                description=f"Black swan drawdown: {current_dd:.2%}",
+                current_value=current_dd,
+                threshold=self.black_swan_dd,
+                action=RiskAction.EMERGENCY_STOP
+            )
+            return RiskAction.EMERGENCY_STOP
+        
+        return None
+    
+    def _check_excessive_slippage(self, market_data: Dict[str, Any]) -> Optional[RiskAction]:
+        """Check for excessive slippage indicating liquidity crisis"""
+        recent_executions = market_data.get('recent_executions', [])
+        if not recent_executions:
+            return None
+        
+        # Check last 5 executions
+        for execution in recent_executions[-5:]:
+            expected_price = execution.get('expected_price', 0)
+            actual_price = execution.get('actual_price', 0)
+            
+            if expected_price > 0:
+                slippage = abs(actual_price - expected_price) / expected_price
+                
+                if slippage >= self.max_slippage_pct:
+                    self._create_risk_event(
+                        risk_type="excessive_slippage",
+                        risk_level=RiskLevel.HIGH,
+                        symbol=execution.get('symbol', 'SOLUSDT'),
+                        description=f"Excessive slippage: {slippage:.3%}",
+                        current_value=slippage,
+                        threshold=self.max_slippage_pct,
+                        action=RiskAction.PAUSE_TRADING
+                    )
+                    return RiskAction.PAUSE_TRADING
+        
+        return None
+    
+    def get_drawdown_adjustments(self, current_dd: float) -> Dict[str, float]:
+        """
+        Get position sizing adjustments based on current drawdown
+        As per algorithm specification
+        """
+        for dd_threshold in sorted(self.dd_levels.keys(), reverse=True):
+            if current_dd >= dd_threshold:
+                return self.dd_levels[dd_threshold]
+        
+        return {'position_mult': 1.0, 'conf_boost': 0}
+    
+    def check_regime_risk_limits(self, regime: str, setup_type: str) -> bool:
+        """
+        Check if setup type is appropriate for current market regime
+        """
+        regime_restrictions = {
+            'volatile_choppy': ['mean_reversion'],  # Only mean reversion in choppy markets
+            'low_volatility_range': ['breakout', 'momentum'],  # No range trading in low vol
+        }
+        
+        if regime in regime_restrictions:
+            allowed_setups = regime_restrictions[regime]
+            return setup_type in allowed_setups
+        
+        return True  # Allow all setups in other regimes

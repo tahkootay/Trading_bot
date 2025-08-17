@@ -49,18 +49,45 @@ class TechnicalIndicatorCalculator:
             # Volume indicators
             indicators.update(self._calculate_volume_indicators(df))
             
+            # Volume profile and liquidity (temporarily disabled for debugging)
+            # indicators.update(self._calculate_volume_profile(df))
+            # indicators.update(self._calculate_liquidity_zones(df))
+            
             # Trend indicators
             indicators.update(self._calculate_trend_indicators(df))
             
             # Support/Resistance levels
             indicators.update(self._calculate_support_resistance(df))
             
-            # Create TechnicalIndicators object with latest values
+            # Swing points analysis (algorithm requirement)
+            indicators.update(self._identify_swing_points(df))
+            
+            # Z-score volume (algorithm requirement)
+            indicators.update(self._calculate_z_score_volume(df))
+            
+            # VWAP with bands (enhanced version)
+            indicators.update(self._calculate_vwap_with_bands(df))
+            
+            # Create TechnicalIndicators object with latest values - filter to known fields
+            known_fields = {
+                'ema_8', 'ema_13', 'ema_21', 'ema_34', 'ema_55', 'sma_20', 'hull_ma', 'vwma',
+                'rsi', 'macd', 'macd_signal', 'macd_hist', 'stoch_k', 'stoch_d', 'williams_r', 'roc', 'mfi',
+                'atr', 'bb_upper', 'bb_middle', 'bb_lower', 'keltner_upper', 'keltner_middle', 'keltner_lower',
+                'vwap', 'vwap_std1_upper', 'vwap_std1_lower', 'vwap_std2_upper', 'vwap_std2_lower', 'volume_sma', 'volume_ratio',
+                'adx', 'supertrend', 'supertrend_direction', 'parabolic_sar',
+                'pivot_point', 'resistance_1', 'resistance_2', 'support_1', 'support_2'
+            }
+            
+            filtered_indicators = {}
+            for k, v in indicators.items():
+                if k in known_fields:
+                    filtered_indicators[k] = v.iloc[-1] if hasattr(v, 'iloc') else v
+            
             latest_indicators = TechnicalIndicators(
                 symbol=symbol,
                 timestamp=df.index[-1],
                 timeframe=timeframe,
-                **{k: v.iloc[-1] if hasattr(v, 'iloc') else v for k, v in indicators.items()}
+                **filtered_indicators
             )
             
             return latest_indicators
@@ -437,6 +464,135 @@ class TechnicalIndicatorCalculator:
         """Calculate Volume Weighted Moving Average."""
         vwma = (close * volume).rolling(window=period).sum() / volume.rolling(window=period).sum()
         return vwma.fillna(0)
+    
+    def _identify_swing_points(self, df: pd.DataFrame, window: int = 5) -> Dict[str, Union[float, list]]:
+        """
+        Identify swing highs and lows for structure analysis
+        Required by algorithm for SetupDetector
+        """
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        
+        swing_points = []
+        
+        # Find swing highs
+        for i in range(window, len(df) - window):
+            is_swing_high = all(high.iloc[i] > high.iloc[i-j] for j in range(1, window+1)) and \
+                          all(high.iloc[i] > high.iloc[i+j] for j in range(1, window+1))
+            
+            if is_swing_high:
+                swing_points.append({
+                    'type': 'high',
+                    'price': high.iloc[i],
+                    'index': i,
+                    'timestamp': df.index[i] if hasattr(df.index, '__getitem__') else i
+                })
+        
+        # Find swing lows
+        for i in range(window, len(df) - window):
+            is_swing_low = all(low.iloc[i] < low.iloc[i-j] for j in range(1, window+1)) and \
+                         all(low.iloc[i] < low.iloc[i+j] for j in range(1, window+1))
+            
+            if is_swing_low:
+                swing_points.append({
+                    'type': 'low',
+                    'price': low.iloc[i],
+                    'index': i,
+                    'timestamp': df.index[i] if hasattr(df.index, '__getitem__') else i
+                })
+        
+        # Sort by index
+        swing_points.sort(key=lambda x: x['index'])
+        
+        # Calculate nearest swing levels to current price
+        current_price = close.iloc[-1]
+        swing_highs = [sp['price'] for sp in swing_points if sp['type'] == 'high']
+        swing_lows = [sp['price'] for sp in swing_points if sp['type'] == 'low']
+        
+        nearest_resistance = min([h for h in swing_highs if h > current_price], default=current_price * 1.02)
+        nearest_support = max([l for l in swing_lows if l < current_price], default=current_price * 0.98)
+        
+        return {
+            'swing_points': swing_points,
+            'nearest_swing_high': nearest_resistance,
+            'nearest_swing_low': nearest_support,
+            'swing_high_count': len([sp for sp in swing_points if sp['type'] == 'high']),
+            'swing_low_count': len([sp for sp in swing_points if sp['type'] == 'low'])
+        }
+    
+    def _calculate_z_score_volume(self, df: pd.DataFrame, window: int = 50) -> Dict[str, float]:
+        """
+        Calculate volume z-score as required by algorithm
+        Used in entry filters and regime classification
+        """
+        volume = df['volume']
+        
+        if len(volume) < window:
+            return {'zvol': 0.0, 'volume_percentile': 0.5}
+        
+        # Calculate rolling statistics
+        vol_mean = volume.rolling(window=window).mean()
+        vol_std = volume.rolling(window=window).std()
+        
+        # Calculate z-score
+        current_volume = volume.iloc[-1]
+        mean_vol = vol_mean.iloc[-1]
+        std_vol = vol_std.iloc[-1]
+        
+        if std_vol > 0:
+            z_score = (current_volume - mean_vol) / std_vol
+        else:
+            z_score = 0.0
+        
+        # Calculate volume percentile
+        recent_volumes = volume.tail(window).values
+        percentile = (recent_volumes < current_volume).sum() / len(recent_volumes)
+        
+        return {
+            'zvol': z_score,
+            'volume_percentile': percentile,
+            'volume_mean': mean_vol,
+            'volume_std': std_vol
+        }
+    
+    def _calculate_vwap_with_bands(self, df: pd.DataFrame) -> Dict[str, pd.Series]:
+        """
+        Enhanced VWAP with multiple standard deviation bands
+        Required by algorithm for mean reversion setups
+        """
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        volume = df['volume']
+        
+        # Typical price
+        typical_price = (high + low + close) / 3
+        
+        # Calculate cumulative values
+        cum_vol = volume.cumsum()
+        cum_vol_price = (typical_price * volume).cumsum()
+        vwap = cum_vol_price / cum_vol
+        
+        # Calculate VWAP variance and standard deviation
+        price_diff_sq = ((typical_price - vwap) ** 2) * volume
+        cum_price_diff_sq = price_diff_sq.cumsum()
+        vwap_variance = cum_price_diff_sq / cum_vol
+        vwap_std = np.sqrt(vwap_variance)
+        
+        # Create bands
+        indicators = {
+            'vwap': vwap.fillna(method='ffill'),
+            'vwap_std': vwap_std.fillna(0),
+            'vwap_upper_1sigma': (vwap + vwap_std).fillna(method='ffill'),
+            'vwap_lower_1sigma': (vwap - vwap_std).fillna(method='ffill'),
+            'vwap_upper_2sigma': (vwap + 2 * vwap_std).fillna(method='ffill'),
+            'vwap_lower_2sigma': (vwap - 2 * vwap_std).fillna(method='ffill'),
+            'vwap_upper_3sigma': (vwap + 3 * vwap_std).fillna(method='ffill'),
+            'vwap_lower_3sigma': (vwap - 3 * vwap_std).fillna(method='ffill')
+        }
+        
+        return indicators
 
 
 class FeatureEngine:
@@ -706,6 +862,175 @@ class FeatureEngine:
             features['is_weekend'] = 1 if day_of_week >= 5 else 0
         
         return features
+    
+    def _calculate_volume_profile(self, df: pd.DataFrame, bins: int = 20) -> Dict[str, Union[float, pd.Series]]:
+        """Calculate volume profile with POC, VAH, VAL."""
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        volume = df['volume']
+        
+        indicators = {}
+        
+        # Calculate price range and bin size
+        price_min = low.min()
+        price_max = high.max()
+        bin_size = (price_max - price_min) / bins
+        
+        if bin_size == 0:
+            return {
+                'poc': close.iloc[-1],
+                'vah': close.iloc[-1],
+                'val': close.iloc[-1],
+                'volume_at_price': pd.Series(index=close.index, dtype=float).fillna(0)
+            }
+        
+        # Create volume profile
+        profile = {}
+        for i in range(len(df)):
+            price = close.iloc[i]
+            vol = volume.iloc[i]
+            bin_idx = int((price - price_min) / bin_size)
+            bin_idx = min(bin_idx, bins - 1)  # Ensure within bounds
+            
+            if bin_idx not in profile:
+                profile[bin_idx] = {'price': price_min + bin_idx * bin_size, 'volume': 0}
+            profile[bin_idx]['volume'] += vol
+        
+        if not profile:
+            return {
+                'poc': close.iloc[-1],
+                'vah': close.iloc[-1],
+                'val': close.iloc[-1],
+                'volume_at_price': pd.Series(index=close.index, dtype=float).fillna(0)
+            }
+        
+        # Find POC (Point of Control) - highest volume bin
+        poc_bin = max(profile.items(), key=lambda x: x[1]['volume'])
+        poc = poc_bin[1]['price']
+        
+        # Calculate Value Area (70% of total volume)
+        total_volume = sum([p['volume'] for p in profile.values()])
+        value_area_volume = total_volume * 0.70
+        
+        # Sort bins by volume
+        sorted_profile = sorted(profile.items(), key=lambda x: x[1]['volume'], reverse=True)
+        accumulated = 0
+        value_area_bins = []
+        
+        for bin_idx, data in sorted_profile:
+            accumulated += data['volume']
+            value_area_bins.append(data['price'])
+            if accumulated >= value_area_volume:
+                break
+        
+        vah = max(value_area_bins) if value_area_bins else poc  # Value Area High
+        val = min(value_area_bins) if value_area_bins else poc  # Value Area Low
+        
+        # Create volume at price series for current prices
+        volume_at_price = pd.Series(index=close.index, dtype=float)
+        for i in range(len(df)):
+            price = close.iloc[i]
+            bin_idx = int((price - price_min) / bin_size)
+            bin_idx = min(bin_idx, bins - 1)
+            volume_at_price.iloc[i] = profile.get(bin_idx, {'volume': 0})['volume']
+        
+        indicators['poc'] = poc
+        indicators['vah'] = vah
+        indicators['val'] = val
+        indicators['volume_at_price'] = volume_at_price.fillna(0)
+        
+        return indicators
+    
+    def _calculate_liquidity_zones(self, df: pd.DataFrame, lookback: int = 100) -> Dict[str, Union[float, list]]:
+        """Identify liquidity zones from price action and volume."""
+        high = df['high']
+        low = df['low']
+        volume = df['volume']
+        
+        indicators = {}
+        liquidity_pools = []
+        
+        # Find resistance levels (highs with multiple touches)
+        for i in range(20, len(df) - 1):
+            level = high.iloc[i]
+            touches = 0
+            volume_at_level = 0
+            
+            # Check for touches within tolerance
+            start_idx = max(0, i - lookback)
+            end_idx = min(len(df), i + lookback)
+            
+            for j in range(start_idx, end_idx):
+                if abs(high.iloc[j] - level) / level < 0.001:  # 0.1% tolerance
+                    touches += 1
+                    volume_at_level += volume.iloc[j]
+            
+            if touches >= 3:  # At least 3 touches
+                strength = touches * (volume_at_level / volume.mean())
+                liquidity_pools.append({
+                    'level': level,
+                    'touches': touches,
+                    'volume': volume_at_level,
+                    'type': 'resistance',
+                    'strength': strength
+                })
+        
+        # Find support levels (lows with multiple touches)
+        for i in range(20, len(df) - 1):
+            level = low.iloc[i]
+            touches = 0
+            volume_at_level = 0
+            
+            start_idx = max(0, i - lookback)
+            end_idx = min(len(df), i + lookback)
+            
+            for j in range(start_idx, end_idx):
+                if abs(low.iloc[j] - level) / level < 0.001:
+                    touches += 1
+                    volume_at_level += volume.iloc[j]
+            
+            if touches >= 3:
+                strength = touches * (volume_at_level / volume.mean())
+                liquidity_pools.append({
+                    'level': level,
+                    'touches': touches,
+                    'volume': volume_at_level,
+                    'type': 'support',
+                    'strength': strength
+                })
+        
+        # Sort by strength and filter overlapping levels
+        liquidity_pools.sort(key=lambda x: x['strength'], reverse=True)
+        filtered_pools = []
+        
+        for pool in liquidity_pools:
+            too_close = False
+            for existing in filtered_pools:
+                if abs(pool['level'] - existing['level']) / existing['level'] < 0.002:  # 0.2% tolerance
+                    too_close = True
+                    break
+            if not too_close:
+                filtered_pools.append(pool)
+        
+        # Keep top 10 strongest pools
+        top_pools = filtered_pools[:10]
+        
+        # Calculate nearest support and resistance
+        current_price = df['close'].iloc[-1]
+        resistances = [p['level'] for p in top_pools if p['type'] == 'resistance' and p['level'] > current_price]
+        supports = [p['level'] for p in top_pools if p['type'] == 'support' and p['level'] < current_price]
+        
+        nearest_resistance = min(resistances) if resistances else current_price * 1.02
+        nearest_support = max(supports) if supports else current_price * 0.98
+        
+        indicators['liquidity_pools'] = top_pools
+        indicators['nearest_resistance'] = nearest_resistance
+        indicators['nearest_support'] = nearest_support
+        indicators['support_strength'] = max([p['strength'] for p in top_pools if p['type'] == 'support'], default=0)
+        indicators['resistance_strength'] = max([p['strength'] for p in top_pools if p['type'] == 'resistance'], default=0)
+        
+        return indicators
     
     def _count_consecutive(self, series: pd.Series) -> int:
         """Count consecutive 1s from the end of series."""

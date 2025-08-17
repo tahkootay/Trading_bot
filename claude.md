@@ -38,7 +38,7 @@ trading-bot/
 ├── scripts/                 # Utility scripts
 ├── docker/                  # Docker configurations
 ├── docs/                    # Documentation
-└── Output/                  # Generated reports and results
+└── output/                  # Generated reports and results
 ```
 
 ## Key Commands

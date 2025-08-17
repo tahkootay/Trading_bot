@@ -1,4 +1,4 @@
-# Default configuration for Trading Bot
+# SOL/USDT Trading Bot Configuration - Aligned with Algorithm Specification
 
 # Environment
 environment: "development"
@@ -16,38 +16,143 @@ exchange:
 # Trading Configuration
 trading:
   symbol: "SOLUSDT"
+  
+  # Timeframes (aligned with algorithm)
   timeframes:
-    - "1m"
-    - "3m"
-    - "5m"
-    - "15m"
-    - "1h"
-  max_position_size: 0.02  # 2% of account balance
+    tick: "1s"
+    micro: "1m"
+    fast: "3m"
+    primary: "5m"
+    medium: "15m"
+    slow: "1h"
+    macro: "4h"
+  
+  # Market Sessions (UTC hours)
+  sessions:
+    asia: [1, 9]
+    europe: [7, 16]
+    us: [13, 22]
+    active_hours: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+  
+  # Position sizing and risk
+  max_position_size: 0.02  # 2% of account balance per trade
   min_order_size: 10.0  # $10 minimum
   leverage: 3
   
-  # Entry conditions
-  min_signal_confidence: 0.15
-  min_volume_ratio: 1.0
-  min_adx: 20.0
+  # Technical Indicator Parameters (aligned with algorithm)
+  indicator_params:
+    ema_ribbon: [8, 13, 21, 34, 55]
+    atr_period: 14
+    rsi_period: 14
+    adx_period: 14
+    volume_window: 50
+    correlation_windows: [30, 60, 120, 240]  # minutes
+    macd:
+      fast: 12
+      slow: 26
+      signal: 9
   
-  # Exit conditions
-  take_profit_levels: [1.0, 1.5, 2.5]  # ATR multiples
-  take_profit_ratios: [0.4, 0.3, 0.2]  # Position percentages
-  stop_loss_atr: 1.2
-  trailing_stop_enabled: true
-  time_stop_hours: 2
+  # Entry Filters by Market Regime - optimized for real market conditions
+  entry_filters:
+    default:
+      adx_min: 15  # Reduced from 25
+      zvol_min: 0.3  # Reduced from 0.5
+      rsi_range: [25, 75]  # Wider range
+      btc_corr_max: 0.85  # Slightly increased
+      ml_margin_min: 0.08  # Reduced from 0.15
+      ml_conf_min: 0.60  # Reduced from 0.70
+      ml_agreement_min: 0.50  # Reduced from 0.60
+    trending:
+      adx_min: 20  # Reduced from 25
+      zvol_min: 0.3  # Reduced from 0.4
+      rsi_range: [25, 75]  # Wider range
+      btc_corr_max: 0.85
+      ml_margin_min: 0.08  # Reduced from 0.12
+      ml_conf_min: 0.55  # Reduced from 0.65
+      ml_agreement_min: 0.45  # Reduced from 0.55
+    ranging:
+      adx_min: 10  # Reduced from 15
+      zvol_min: 0.4  # Reduced from 0.6
+      rsi_range: [25, 75]  # Wider range
+      btc_corr_max: 0.75
+      ml_margin_min: 0.10  # Reduced from 0.18
+      ml_conf_min: 0.65  # Reduced from 0.75
+      ml_agreement_min: 0.55  # Reduced from 0.65
+    high_volatility:
+      adx_min: 20
+      zvol_min: 0.8
+      rsi_range: [40, 60]
+      btc_corr_max: 0.70
+      ml_margin_min: 0.20
+      ml_conf_min: 0.75
+      ml_agreement_min: 0.70
+  
+  # Stop Loss and Take Profit
+  sl_tp_params:
+    sl_atr_range: [1.0, 1.5]
+    tp_levels: [1.0, 1.5, 2.5]
+    tp_allocations: [0.4, 0.3, 0.2]  # 10% reserved for runner
+    trailing_activation: 1.0  # Activate trailing after 1 ATR profit
+    profit_lock_pct: 0.70  # Lock 70% of max profit
+  
+  # Time Stops by Setup Type (minutes)
+  time_stops:
+    scalp: 30
+    momentum: 60
+    breakout: 180
+    mean_reversion: 240
+    position: 360
+    default: 120
 
-# Risk Management
+# Risk Management - Enhanced
 risk:
-  max_daily_loss: 0.03  # 3%
-  max_drawdown: 0.10  # 10%
-  max_consecutive_losses: 3
-  pause_after_losses_hours: 2
-  max_correlation: 0.8
-  max_positions: 3
-  position_sizing_method: "kelly"  # kelly, fixed, volatility
-  kelly_fraction: 0.25
+  # Basic Risk Parameters
+  position_risk_pct: 0.02  # 2% per trade
+  daily_loss_limit: 0.03   # 3%
+  max_corr_positions: 3
+  max_portfolio_risk: 0.10  # 10%
+  kelly_cap: 0.25           # 25% of Kelly
+  series_loss_pause: 3      # pause after 3 consecutive losses
+  pause_duration_min: 120   # 2 hours
+  
+  # Drawdown Management
+  dd_levels:
+    0.05:  # 5% DD
+      position_mult: 0.5
+      conf_boost: 0
+    0.08:  # 8% DD
+      position_mult: 0.3
+      conf_boost: 0.10
+    0.10:  # 10% DD - stop
+      position_mult: 0
+      conf_boost: null
+  
+  # Emergency Stops
+  extreme_1m_move: 0.05    # 5% in 1 minute
+  black_swan_dd: 0.15      # 15% drawdown
+  max_slippage_pct: 0.001  # 0.1%
+  
+  # Market Regime Thresholds
+  market_regimes:
+    low_volatility_range:
+      adx_max: 20
+      atr_ratio_max: 0.8
+      volume_ratio_max: 0.7
+    normal_range:
+      adx_range: [20, 25]
+      atr_ratio_range: [0.8, 1.2]
+    trending:
+      adx_min: 25
+      adx_max: 40
+      ema_aligned: true
+    strong_trend:
+      adx_min: 40
+      volume_trending: true
+      ema_strongly_aligned: true
+    volatile_choppy:
+      adx_max: 25
+      atr_ratio_min: 1.5
+      whipsaw_count_min: 3
 
 # Machine Learning
 ml:
@@ -105,11 +210,42 @@ cache_ttl: 300  # 5 minutes
 models_path: "models/"
 logs_path: "logs/"
 
-# Order Execution
+# Order Execution Parameters (aligned with algorithm)
 execution:
-  default_strategy: "SMART"
-  max_slippage: 0.002  # 0.2%
-  order_timeout: 30  # seconds
-  liquidity_threshold: 1000.0  # $1000
-  iceberg_chunk_size: 0.1  # 10%
-  twap_intervals: 5
+  entry_type: "limit"
+  entry_offset_pct: 0.0005  # 0.05%
+  fill_timeout_sec: 30
+  partial_fill_min: 0.5
+  iceberg_enabled: true
+  iceberg_show_pct: 0.2     # Show 20% of total
+  retry_attempts: 3
+  retry_delay_sec: 5
+  
+  # Liquidity Parameters (from algorithm specification)
+  liquidity_params:
+    min_pool_size_usd: 50000
+    max_position_vs_volume: 0.01  # 1% of 5m volume
+    orderbook_depth_pct: 0.002    # 0.2% from mid price
+    max_position_vs_depth: 0.10   # 10% of available depth
+    large_order_multiplier: 10    # 10x average trade size
+    absorption_volume_ratio: 3.0  # 3x average with no price move
+
+# Position Sizing with Adaptive Kelly (from algorithm)
+position_sizing:
+  kelly_cap: 0.25           # 25% of Kelly maximum
+  base_risk_pct: 0.02       # 2% base position size
+  correlation_adjustment: true
+  volatility_adjustment: true  
+  drawdown_adjustment: true
+  liquidity_adjustment: true
+  regime_adjustment: true
+
+# Setup Types and Time Stops (from algorithm)
+setup_types:
+  time_stops:
+    scalp: 30          # 30 minutes
+    momentum: 60       # 1 hour
+    breakout: 180      # 3 hours
+    mean_reversion: 240 # 4 hours
+    position: 360      # 6 hours
+    default: 120       # 2 hours
