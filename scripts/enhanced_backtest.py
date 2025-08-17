@@ -76,13 +76,14 @@ class EnhancedBacktestEngine:
         }
         
         for tf_str, tf_enum in timeframe_map.items():
-            file_pattern = f"{symbol}_{tf_str}_*.csv"
-            files = list(data_path.glob(file_pattern))
+            # First try to find real data files
+            real_pattern = f"{symbol}_{tf_str}_real_*.csv"
+            real_files = list(data_path.glob(real_pattern))
             
-            if files:
-                # Use the most recent file
-                latest_file = max(files, key=lambda x: x.stat().st_mtime)
-                print(f"📊 Loading {tf_str} data from {latest_file.name}")
+            if real_files:
+                # Use the most recent real data file
+                latest_file = max(real_files, key=lambda x: x.stat().st_mtime)
+                print(f"📊 Loading {tf_str} REAL data from {latest_file.name}")
                 
                 df = pd.read_csv(latest_file)
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -90,9 +91,26 @@ class EnhancedBacktestEngine:
                 df.sort_index(inplace=True)
                 
                 data[tf_enum] = df
-                print(f"  ✅ Loaded {len(df)} candles for {tf_str}")
+                print(f"  ✅ Loaded {len(df)} REAL candles for {tf_str}")
             else:
-                print(f"  ❌ No data file found for {tf_str}")
+                # Fallback to testnet data
+                file_pattern = f"{symbol}_{tf_str}_*.csv"
+                files = list(data_path.glob(file_pattern))
+                
+                if files:
+                    # Use the most recent file
+                    latest_file = max(files, key=lambda x: x.stat().st_mtime)
+                    print(f"📊 Loading {tf_str} testnet data from {latest_file.name}")
+                    
+                    df = pd.read_csv(latest_file)
+                    df['timestamp'] = pd.to_datetime(df['timestamp'])
+                    df.set_index('timestamp', inplace=True)
+                    df.sort_index(inplace=True)
+                    
+                    data[tf_enum] = df
+                    print(f"  ✅ Loaded {len(df)} testnet candles for {tf_str}")
+                else:
+                    print(f"  ❌ No data file found for {tf_str}")
         
         return data
     
@@ -692,7 +710,7 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
         if days:
             latest_data = max(data.values(), key=len)
             end_date = latest_data.index[-1]
-            start_date = end_date - timedelta(days=days)
+            start_date = end_date - timedelta(days=int(days))
             print(f"📅 Limiting to last {days} days: {start_date.date()} → {end_date.date()}")
         
         # Run backtest
@@ -709,7 +727,10 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
         # Save results if requested
         if save_results:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            results_file = f"backtest_results_{symbol}_{timestamp}.json"
+            
+            # Ensure Output directory exists
+            Path("../Output").mkdir(exist_ok=True)
+            results_file = f"../Output/backtest_results_{symbol}_{timestamp}.json"
             
             # Add trade details
             detailed_results = results.copy()

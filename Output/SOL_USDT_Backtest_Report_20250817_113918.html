@@ -1,0 +1,965 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOL/USDT Backtest Analysis Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .summary-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .signal-analysis {
+            margin: 20px 0;
+        }
+        .signal-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .signal-type {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .signal-buy { background-color: #27ae60; color: white; }
+        .signal-sell { background-color: #e74c3c; color: white; }
+        .signal-none { background-color: #95a5a6; color: white; }
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .conditions {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+        .condition {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .condition-true { color: #27ae60; }
+        .condition-false { color: #e74c3c; }
+        .indicators {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .indicator {
+            display: inline-block;
+            margin: 2px 5px;
+            padding: 2px 8px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .explanation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .no-trades {
+            text-align: center;
+            padding: 40px;
+            background-color: #ffebee;
+            border: 2px dashed #f44336;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .score-bar {
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        .score-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .score-bullish { background-color: #27ae60; }
+        .score-bearish { background-color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 SOL/USDT Backtest Analysis Report</h1>
+        <p><strong>Generated:</strong> 2025-08-17 11:39:18</p>
+        
+        <h2>🏪 Market Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>Analysis Period</h3>
+                <div class="value">6 days</div>
+                <small>2025-08-10 11:35 - 2025-08-17 11:30</small>
+            </div>
+            <div class="summary-card">
+                <h3>Price Range</h3>
+                <div class="value">$173.34 - $210.08</div>
+                <small>Range: $36.74</small>
+            </div>
+            <div class="summary-card">
+                <h3>Total Return</h3>
+                <div class="value">+6.82%</div>
+                <small>$179.84 → $192.11</small>
+            </div>
+            <div class="summary-card">
+                <h3>Movements ≥$2</h3>
+                <div class="value">9</div>
+                <small>Max 5min move: $11.28</small>
+            </div>
+            <div class="summary-card">
+                <h3>Average Volume</h3>
+                <div class="value">62842.32</div>
+                <small>Total: 126690126.70</small>
+            </div>
+            <div class="summary-card">
+                <h3>Volatility</h3>
+                <div class="value">5.0%</div>
+                <small>Annualized</small>
+            </div>
+        </div>
+        
+        <h2>⚠️ Backtest Results</h2>
+        <div class="no-trades">
+            <h3>❌ No Trades Executed</h3>
+            <p>The enhanced backtest strategy did not generate any executable trades during the analysis period.</p>
+            <p>This indicates that the signal criteria are either too strict or the market conditions during this period did not meet the strategy requirements.</p>
+        </div>
+        
+        <h2>🔍 Signal Analysis (1743 Analysis Points)</h2>
+        <div class="warning">
+            <strong>Key Findings:</strong>
+            <ul>
+                <li>Strategy requires multiple technical indicators to align simultaneously</li>
+                <li>Minimum confidence threshold of 15% (0.15) for signal generation</li>
+                <li>Volume ratio must be >1.2x average</li>
+                <li>ADX must be ≥20 for trend strength confirmation</li>
+                <li>The testnet data may have limited volume activity affecting volume-based criteria</li>
+            </ul>
+        </div>
+        
+        <div class="signal-analysis">
+    
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 09:50</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.80</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.205</span><span class="indicator">EMA_21: 192.398</span><span class="indicator">EMA_55: 191.767</span><span class="indicator">RSI: 28.235</span><span class="indicator">VOLUME_RATIO: 0.907</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 09:55</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.87</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.131</span><span class="indicator">EMA_21: 192.350</span><span class="indicator">EMA_55: 191.771</span><span class="indicator">RSI: 27.668</span><span class="indicator">VOLUME_RATIO: 0.610</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:00</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.82</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.062</span><span class="indicator">EMA_21: 192.302</span><span class="indicator">EMA_55: 191.773</span><span class="indicator">RSI: 30.568</span><span class="indicator">VOLUME_RATIO: 0.830</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:05</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.19</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (80.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 80.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.090</span><span class="indicator">EMA_21: 192.291</span><span class="indicator">EMA_55: 191.788</span><span class="indicator">RSI: 43.496</span><span class="indicator">VOLUME_RATIO: 3.079</span><span class="indicator">PRICE_VS_VWAP: 0.003</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 80.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:15</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.30</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (80.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 80.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.147</span><span class="indicator">EMA_21: 192.280</span><span class="indicator">EMA_55: 191.818</span><span class="indicator">RSI: 42.742</span><span class="indicator">VOLUME_RATIO: 1.539</span><span class="indicator">PRICE_VS_VWAP: 0.004</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 80.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:20</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.02</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.119</span><span class="indicator">EMA_21: 192.257</span><span class="indicator">EMA_55: 191.826</span><span class="indicator">RSI: 36.330</span><span class="indicator">VOLUME_RATIO: 0.750</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:25</span>
+                    <span class="signal-type signal-sell">SELL</span>
+                    <span>Price: $191.62</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (80.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 80.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 192.008</span><span class="indicator">EMA_21: 192.199</span><span class="indicator">EMA_55: 191.818</span><span class="indicator">RSI: 32.441</span><span class="indicator">VOLUME_RATIO: 1.462</span><span class="indicator">PRICE_VS_VWAP: 0.000</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 40.0%, Bearish: 80.0%
+                    
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:30</span>
+                    <span class="signal-type signal-sell">SELL</span>
+                    <span>Price: $191.65</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (80.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 80.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.928</span><span class="indicator">EMA_21: 192.149</span><span class="indicator">EMA_55: 191.812</span><span class="indicator">RSI: 31.757</span><span class="indicator">VOLUME_RATIO: 1.576</span><span class="indicator">PRICE_VS_VWAP: 0.000</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 40.0%, Bearish: 80.0%
+                    
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:35</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.78</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.895</span><span class="indicator">EMA_21: 192.115</span><span class="indicator">EMA_55: 191.811</span><span class="indicator">RSI: 36.149</span><span class="indicator">VOLUME_RATIO: 0.455</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:40</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.94</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.905</span><span class="indicator">EMA_21: 192.100</span><span class="indicator">EMA_55: 191.816</span><span class="indicator">RSI: 47.126</span><span class="indicator">VOLUME_RATIO: 0.417</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 60.0%, Bearish: 40.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:45</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.96</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.918</span><span class="indicator">EMA_21: 192.087</span><span class="indicator">EMA_55: 191.821</span><span class="indicator">RSI: 47.710</span><span class="indicator">VOLUME_RATIO: 0.627</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 60.0%, Bearish: 40.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:50</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.89</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.911</span><span class="indicator">EMA_21: 192.069</span><span class="indicator">EMA_55: 191.823</span><span class="indicator">RSI: 39.241</span><span class="indicator">VOLUME_RATIO: 0.385</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 10:55</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.77</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.880</span><span class="indicator">EMA_21: 192.042</span><span class="indicator">EMA_55: 191.821</span><span class="indicator">RSI: 46.734</span><span class="indicator">VOLUME_RATIO: 0.226</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 40.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:00</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.00</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.907</span><span class="indicator">EMA_21: 192.038</span><span class="indicator">EMA_55: 191.828</span><span class="indicator">RSI: 54.717</span><span class="indicator">VOLUME_RATIO: 0.457</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 60.0%, Bearish: 40.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:05</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.68</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.856</span><span class="indicator">EMA_21: 192.005</span><span class="indicator">EMA_55: 191.823</span><span class="indicator">RSI: 45.992</span><span class="indicator">VOLUME_RATIO: 0.363</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 40.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:10</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.82</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.848</span><span class="indicator">EMA_21: 191.989</span><span class="indicator">EMA_55: 191.822</span><span class="indicator">RSI: 50.000</span><span class="indicator">VOLUME_RATIO: 0.407</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 40.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:15</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $191.72</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (20.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 20.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-false">❌</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.820</span><span class="indicator">EMA_21: 191.964</span><span class="indicator">EMA_55: 191.819</span><span class="indicator">RSI: 39.269</span><span class="indicator">VOLUME_RATIO: 0.461</span><span class="indicator">PRICE_VS_VWAP: 0.001</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 20.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:20</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.02</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (80.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 80.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-true">✅</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.864</span><span class="indicator">EMA_21: 191.969</span><span class="indicator">EMA_55: 191.826</span><span class="indicator">RSI: 47.347</span><span class="indicator">VOLUME_RATIO: 1.379</span><span class="indicator">PRICE_VS_VWAP: 0.002</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 80.0%, Bearish: 60.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:25</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.06</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.908</span><span class="indicator">EMA_21: 191.977</span><span class="indicator">EMA_55: 191.834</span><span class="indicator">RSI: 44.872</span><span class="indicator">VOLUME_RATIO: 0.495</span><span class="indicator">PRICE_VS_VWAP: 0.003</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 60.0%, Bearish: 40.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+            <div class="signal-item">
+                <div class="signal-header">
+                    <span class="timestamp">2025-08-17 11:30</span>
+                    <span class="signal-type signal-none">NONE</span>
+                    <span>Price: $192.11</span>
+                </div>
+                
+                <div class="conditions-grid">
+                    <div class="conditions">
+                        <h4>🐂 Bullish Conditions (60.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bullish" style="width: 60.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Up</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Above Ema8</span><span class="condition-true">✅</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                    <div class="conditions">
+                        <h4>🐻 Bearish Conditions (40.0%)</h4>
+                        <div class="score-bar">
+                            <div class="score-fill score-bearish" style="width: 40.0%"></div>
+                        </div>
+        <div class="condition"><span>Ema Trend Down</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Below Ema8</span><span class="condition-false">❌</span></div><div class="condition"><span>Rsi Reasonable</span><span class="condition-true">✅</span></div><div class="condition"><span>Volume Good</span><span class="condition-false">❌</span></div><div class="condition"><span>Price Vs Vwap Ok</span><span class="condition-true">✅</span></div>
+                    </div>
+                </div>
+                
+                <div class="indicators">
+                    <strong>Technical Indicators:</strong>
+        <span class="indicator">EMA_8: 191.953</span><span class="indicator">EMA_21: 191.990</span><span class="indicator">EMA_55: 191.844</span><span class="indicator">RSI: 52.133</span><span class="indicator">VOLUME_RATIO: 0.112</span><span class="indicator">PRICE_VS_VWAP: 0.003</span><span class="indicator">ATR_RATIO: 0.002</span>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Analysis:</strong> Bullish: 60.0%, Bearish: 40.0%
+                    <br><strong>Why no signal:</strong> Neither bullish nor bearish confidence reached the 60% threshold for signal generation.
+                </div>
+            </div>
+        
+        </div>
+        
+        <h2>📋 Strategy Configuration</h2>
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4>Current Strategy Parameters:</h4>
+            <ul>
+                <li><strong>Minimum Confidence:</strong> 15% (0.15)</li>
+                <li><strong>Minimum Volume Ratio:</strong> 1.2x average</li>
+                <li><strong>Minimum ADX:</strong> 20.0 (trend strength)</li>
+                <li><strong>ATR Stop Loss Multiplier:</strong> 1.2x</li>
+                <li><strong>ATR Take Profit Multiplier:</strong> 2.0x</li>
+                <li><strong>Maximum Position Time:</strong> 4 hours</li>
+                <li><strong>Position Size:</strong> 2% of balance</li>
+            </ul>
+        </div>
+        
+        <h2>💡 Recommendations</h2>
+        <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4>To improve signal generation:</h4>
+            <ol>
+                <li><strong>Lower confidence threshold:</strong> Consider reducing from 15% to 10% for more signals</li>
+                <li><strong>Adjust volume requirements:</strong> The testnet data shows low volume activity</li>
+                <li><strong>Use real market data:</strong> Live market data would provide more realistic volume patterns</li>
+                <li><strong>Optimize for testnet conditions:</strong> Adapt strategy parameters for the specific data characteristics</li>
+                <li><strong>Add more timeframes:</strong> Consider using 1m data for faster signal detection</li>
+            </ol>
+        </div>
+        
+        <h2>📈 Next Steps</h2>
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <ul>
+                <li>Run backtest with relaxed parameters to generate signals</li>
+                <li>Collect real market data from live Bybit API</li>
+                <li>Implement paper trading to validate strategy in real-time</li>
+                <li>Monitor signal frequency vs market volatility correlation</li>
+                <li>A/B test different confidence thresholds</li>
+            </ul>
+        </div>
+        
+        <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #7f8c8d;">
+            <p>Report generated by SOL/USDT Trading Bot Analysis System</p>
+            <p>Data Period: 2016 candles analyzed over 6 days</p>
+        </footer>
+    </div>
+</body>
+</html>
+    

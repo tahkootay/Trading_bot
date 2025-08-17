@@ -37,7 +37,8 @@ trading-bot/
 ├── tests/                   # Test suite
 ├── scripts/                 # Utility scripts
 ├── docker/                  # Docker configurations
-└── docs/                    # Documentation
+├── docs/                    # Documentation
+└── Output/                  # Generated reports and results
 ```
 
 ## Key Commands
@@ -59,6 +60,11 @@ python -m src.main --config config/prod.yaml    # Start bot
 python scripts/backtest.py --pair SOLUSDT       # Run backtest
 python scripts/train_model.py --data-days 90    # Train models
 python scripts/emergency_stop.py                # Emergency shutdown
+
+# Analysis & Reports (all saved to Output/)
+python scripts/enhanced_backtest.py --save-results  # Enhanced backtest with JSON results
+python generate_detailed_report.py              # Comprehensive HTML analysis report
+python scripts/collect_data.py --symbol SOLUSDT --days 7  # Collect market data
 ```
 
 ## Code Style & Best Practices

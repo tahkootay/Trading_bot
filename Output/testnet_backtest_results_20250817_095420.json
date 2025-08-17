@@ -1,0 +1,46 @@
+{
+  "initial_balance": 10000.0,
+  "final_balance": 10400.020089014664,
+  "total_return_pct": 4.000200890146632,
+  "total_pnl": -4.175897895474126,
+  "total_trades": 2,
+  "winning_trades": 0,
+  "losing_trades": 2,
+  "win_rate": 0.0,
+  "profit_factor": 0.0,
+  "avg_win": 0,
+  "avg_loss": 2.087948947737063,
+  "max_drawdown": 0.0005977354954144662,
+  "avg_trade_duration_hours": 1.8333333333333335,
+  "total_commission": 0.8048188978276754,
+  "trades": [
+    {
+      "entry_time": "2025-08-17T01:40:00",
+      "exit_time": "2025-08-17T04:45:00",
+      "signal_type": "BUY",
+      "entry_price": 190.385145,
+      "exit_price": 190.38476,
+      "quantity": 1.0510273792632299,
+      "gross_pnl": -0.00040464554101035953,
+      "commission": 0.400099595354459,
+      "net_pnl": -0.4005042408954693,
+      "close_reason": "time_stop",
+      "duration": "0 days 03:05:00",
+      "confidence": 0.4
+    },
+    {
+      "entry_time": "2025-08-17T09:15:00",
+      "exit_time": "2025-08-17T09:50:00",
+      "signal_type": "BUY",
+      "entry_price": 193.25657999999999,
+      "exit_price": 190.06492,
+      "quantity": 1.0560881648124978,
+      "gross_pnl": -3.3706743521054405,
+      "commission": 0.4047193024732163,
+      "net_pnl": -3.775393654578657,
+      "close_reason": "backtest_end",
+      "duration": "0 days 00:35:00",
+      "confidence": 0.4
+    }
+  ]
+}
