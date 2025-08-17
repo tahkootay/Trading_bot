@@ -84,4 +84,31 @@ setup: setup-dev
 	@echo "Development environment setup complete!"
 	@echo "Next steps:"
 	@echo "1. Edit .env with your API credentials"
-	@echo "2. Run 'make run-paper' to start paper trading"
+	@echo "2. Run 'make test-connection' to verify setup"
+	@echo "3. Run 'make collect-data' to gather historical data"
+	@echo "4. Run 'make backtest' to test strategy"
+	@echo "5. Run 'make run-paper' to start paper trading"
+
+# Test Bybit connection
+test-connection:
+	python scripts/setup_testnet.py
+
+# Collect historical data
+collect-data:
+	python scripts/collect_data.py --symbol SOLUSDT --days 30
+
+# Collect more data
+collect-data-extended:
+	python scripts/collect_data.py --symbol SOLUSDT --days 90
+
+# Run enhanced backtest
+backtest:
+	python scripts/enhanced_backtest.py --symbol SOLUSDT --save-results
+
+# Quick backtest (last 7 days)
+backtest-quick:
+	python scripts/enhanced_backtest.py --symbol SOLUSDT --days 7
+
+# Full testing pipeline
+test-all: test-connection collect-data backtest
+	@echo "✅ Complete testing pipeline finished!"
