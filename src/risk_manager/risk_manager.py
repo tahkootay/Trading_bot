@@ -832,3 +832,51 @@ class RiskManager:
             return setup_type in allowed_setups
         
         return True  # Allow all setups in other regimes
+    
+    def _create_risk_event(
+        self,
+        risk_type: str,
+        risk_level: RiskLevel,
+        symbol: str,
+        description: str,
+        current_value: float,
+        threshold: float,
+        action: RiskAction
+    ) -> None:
+        """Create and log a risk event"""
+        event = RiskEvent(
+            timestamp=datetime.now(),
+            risk_type=risk_type,
+            risk_level=risk_level,
+            symbol=symbol,
+            description=description,
+            current_value=current_value,
+            threshold=threshold,
+            action_taken=action,
+            details={
+                "daily_pnl": self.daily_pnl,
+                "current_balance": self.current_balance,
+                "consecutive_losses": self.consecutive_losses,
+                "position_count": len(self.current_positions),
+                "total_exposure": self.total_risk_exposure,
+            }
+        )
+        
+        self.risk_events.append(event)
+        
+        # Apply action
+        if action == RiskAction.PAUSE_TRADING:
+            self.is_trading_paused = True
+            self.pause_until = datetime.now() + timedelta(hours=self.pause_after_losses_hours)
+        elif action == RiskAction.EMERGENCY_STOP:
+            self.is_trading_paused = True
+            self.pause_until = None  # Indefinite pause
+        
+        # Log event
+        self.logger.log_risk_event(
+            event_type=risk_type,
+            symbol=symbol,
+            risk_level=risk_level.value,
+            details=event.details,
+            action_taken=action.value,
+        )

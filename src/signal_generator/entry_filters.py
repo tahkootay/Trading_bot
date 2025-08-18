@@ -1,8 +1,8 @@
 """
-Centralized Entry Filter System for SOL/USDT Trading Algorithm
+Entry Filters System for SOL/USDT Trading Algorithm
 
-Implements comprehensive entry filters with adaptive thresholds
-as specified in the algorithm document.
+Implements adaptive entry filters based on market regime with exact
+algorithm specification thresholds and validation logic.
 """
 
 import numpy as np

@@ -42,8 +42,11 @@ class MarketRegimeClassifier:
     """
     
     def __init__(self, config: Dict):
-        self.config = config.get('risk', {}).get('market_regimes', {})
-        self.ema_periods = config.get('trading', {}).get('indicator_params', {}).get('ema_ribbon', [8, 13, 21, 34, 55])
+        # Import algorithm constants
+        from ..utils.algorithm_constants import MARKET_REGIMES, INDICATOR_PARAMS
+        
+        self.config = config.get('risk', {}).get('market_regimes', MARKET_REGIMES)
+        self.ema_periods = config.get('trading', {}).get('indicator_params', {}).get('ema_ribbon', INDICATOR_PARAMS['ema_ribbon'])
         
     def classify(self, market_data: Dict) -> RegimeSignals:
         """

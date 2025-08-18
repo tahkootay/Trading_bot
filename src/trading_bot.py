@@ -44,23 +44,18 @@ class TradingBot:
         self.config = TradingConfig(config_path)
         self.logger = TradingLogger("trading_bot")
         
-        # Algorithm constants from specification
-        self.TIMEFRAMES = {
-            'tick': '1s',
-            'micro': '1m',
-            'fast': '3m',
-            'primary': '5m',
-            'medium': '15m',
-            'slow': '1h',
-            'macro': '4h'
-        }
+        # Import algorithm constants from specification
+        from .utils.algorithm_constants import (
+            TIMEFRAMES, SESSIONS, MARKET_REGIMES, ENTRY_FILTERS, 
+            RISK_PARAMS, SL_TP_PARAMS, TIME_STOPS, LIQUIDITY_PARAMS,
+            get_regime_entry_filters, validate_trading_session
+        )
         
-        self.SESSIONS = {
-            'asia': (1, 9),
-            'europe': (7, 16),
-            'us': (13, 22),
-            'active_hours': [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
-        }
+        self.TIMEFRAMES = TIMEFRAMES
+        self.SESSIONS = SESSIONS
+        self.MARKET_REGIMES = MARKET_REGIMES
+        self.ENTRY_FILTERS = ENTRY_FILTERS
+        self.RISK_PARAMS = RISK_PARAMS
         
         # Component initialization
         self._initialize_components()
@@ -587,21 +582,29 @@ class TradingBot:
             )
     
     def _check_entry_filters(self, indicators: Dict, order_flow: Dict, regime: str, ml_prediction: Dict) -> bool:
-        """Check if all entry filters pass"""
+        """Check if all entry filters pass using regime-specific thresholds"""
         try:
+            # Get regime-specific filters from algorithm constants
+            from .utils.algorithm_constants import get_regime_entry_filters
+            filters = get_regime_entry_filters(regime)
+            
             # Check each filter as per algorithm specification
             checks = {
                 'session': datetime.now(timezone.utc).hour in self.SESSIONS['active_hours'],
-                'trend': indicators.get('adx', 0) >= 20,
-                'volume': indicators.get('zvol', 0) >= 0.5,
-                'momentum': 35 <= indicators.get('rsi', 50) <= 65,
-                'ml': ml_prediction.get('passes_ml', False)
+                'trend': indicators.get('adx', 0) >= filters['adx_min'],
+                'volume': indicators.get('zvol', 0) >= filters['zvol_min'],
+                'momentum': filters['rsi_range'][0] <= indicators.get('rsi', 50) <= filters['rsi_range'][1],
+                'correlation': abs(indicators.get('btc_correlation', 0)) < filters['btc_corr_max'],
+                'ml_margin': ml_prediction.get('margin', 0) >= filters['ml_margin_min'],
+                'ml_confidence': ml_prediction.get('confidence', 0) >= filters['ml_conf_min'],
+                'ml_agreement': ml_prediction.get('agreement', 0) >= filters['ml_agreement_min']
             }
             
-            # Log filter results
+            # Log filter results for debugging
             failed_filters = [name for name, passed in checks.items() if not passed]
             if failed_filters:
-                self.logger.log_info(f"Entry filters failed: {failed_filters}")
+                self.logger.log_info(f"Entry filters failed for {regime}: {failed_filters}")
+                self.logger.log_info(f"Filter thresholds: {filters}")
             
             return all(checks.values())
             
