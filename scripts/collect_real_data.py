@@ -77,6 +77,8 @@ class RealDataCollector:
         timeframes: list,
         days: int = 7,
         output_dir: str = "data",
+        start_date: str = None,
+        end_date: str = None,
     ) -> dict:
         """Collect historical data for multiple timeframes."""
         
@@ -84,7 +86,10 @@ class RealDataCollector:
         collected_data = {}
         
         print(f"🚀 Collecting real market data for {symbol}")
-        print(f"📅 Period: {days} days")
+        if start_date or end_date:
+            print(f"📅 Period: {start_date or 'beginning'} → {end_date or 'now'}")
+        else:
+            print(f"📅 Period: {days} days")
         print(f"⏱️  Timeframes: {', '.join(timeframes)}")
         print()
         
@@ -107,14 +112,28 @@ class RealDataCollector:
             print(f"📊 Collecting {timeframe_str} data...")
             
             # Calculate time range
-            end_time = int(datetime.now().timestamp() * 1000)
-            start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
+            if start_date or end_date:
+                def _parse_date(s: str):
+                    try:
+                        return datetime.fromisoformat(s)
+                    except Exception:
+                        return datetime.strptime(s, "%Y-%m-%d")
+                start_dt = _parse_date(start_date) if start_date else datetime.fromtimestamp(0)
+                end_dt = _parse_date(end_date) if end_date else datetime.now()
+                # Make end inclusive to end of day if only date
+                if end_date and end_dt.hour == 0 and end_dt.minute == 0 and end_dt.second == 0:
+                    end_dt = end_dt.replace(hour=23, minute=59, second=59, microsecond=999000)
+                end_time = int(end_dt.timestamp() * 1000)
+                start_time = int(start_dt.timestamp() * 1000)
+            else:
+                end_time = int(datetime.now().timestamp() * 1000)
+                start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
             
             all_candles = []
             current_end = end_time
             
             # Collect data in batches (Bybit returns max 200 candles per request)
-            while len(all_candles) < (days * 24 * 60 // int(timeframe_str.replace('m', '').replace('h', '60').replace('d', '1440'))):
+            while True:
                 try:
                     candles = await self.get_klines(
                         symbol=symbol,
@@ -132,7 +151,7 @@ class RealDataCollector:
                     
                     # Add new candles
                     for candle in candles:
-                        if candle['timestamp'] >= datetime.fromtimestamp(start_time / 1000):
+                        if candle['timestamp'] >= datetime.fromtimestamp(start_time / 1000) and candle['timestamp'] <= datetime.fromtimestamp(end_time / 1000):
                             all_candles.append(candle)
                     
                     print(f"  📈 Collected {len(candles)} candles (total: {len(all_candles)})")
@@ -144,20 +163,8 @@ class RealDataCollector:
                     # Rate limiting
                     await asyncio.sleep(0.1)
                     
-                    # Stop if we have enough data
-                    expected_candles = days * 24 * 60
-                    if timeframe_str == '5m':
-                        expected_candles = days * 24 * 12
-                    elif timeframe_str == '15m':
-                        expected_candles = days * 24 * 4
-                    elif timeframe_str == '1h':
-                        expected_candles = days * 24
-                    elif timeframe_str == '4h':
-                        expected_candles = days * 6
-                    elif timeframe_str == '1d':
-                        expected_candles = days
-                    
-                    if len(all_candles) >= expected_candles:
+                    # Stop if we've reached the start boundary
+                    if current_end <= start_time:
                         break
                         
                 except Exception as e:
@@ -179,12 +186,20 @@ class RealDataCollector:
                 df.set_index('timestamp', inplace=True)
                 df.sort_index(inplace=True)
                 
-                # Keep only last N days
-                cutoff_date = datetime.now() - timedelta(days=days)
-                df = df[df.index >= cutoff_date]
+                # Keep only requested period
+                if start_date or end_date:
+                    df = df[(df.index >= datetime.fromtimestamp(start_time / 1000)) & (df.index <= datetime.fromtimestamp(end_time / 1000))]
+                else:
+                    cutoff_date = datetime.now() - timedelta(days=days)
+                    df = df[df.index >= cutoff_date]
                 
                 # Save to file
-                filename = f"{output_dir}/{symbol}_{timeframe_str}_real_{days}d.csv"
+                if start_date or end_date:
+                    start_tag = datetime.fromtimestamp(start_time / 1000).strftime('%Y-%m-%d')
+                    end_tag = datetime.fromtimestamp(end_time / 1000).strftime('%Y-%m-%d')
+                    filename = f"{output_dir}/{symbol}_{timeframe_str}_real_{start_tag}_to_{end_tag}.csv"
+                else:
+                    filename = f"{output_dir}/{symbol}_{timeframe_str}_real_{days}d.csv"
                 df.to_csv(filename)
                 
                 collected_data[timeframe_str] = df
@@ -217,7 +232,9 @@ class RealDataCollector:
 @click.option("--days", default=7, help="Number of days to collect")
 @click.option("--timeframes", default="1m,5m,15m,1h", help="Comma-separated timeframes")
 @click.option("--output", default="data", help="Output directory")
-def main(symbol: str, days: int, timeframes: str, output: str):
+@click.option("--start-date", help="Start date (YYYY-MM-DD or ISO) to collect from")
+@click.option("--end-date", help="End date (YYYY-MM-DD or ISO) to collect to (inclusive)")
+def main(symbol: str, days: int, timeframes: str, output: str, start_date: str, end_date: str):
     """Collect real historical data from Bybit."""
     
     print("🚀 Real Market Data Collector")
@@ -238,6 +255,8 @@ def main(symbol: str, days: int, timeframes: str, output: str):
                     timeframes=timeframes_list,
                     days=days,
                     output_dir=output,
+                    start_date=start_date,
+                    end_date=end_date,
                 )
                 
                 if data:
@@ -250,9 +269,9 @@ def main(symbol: str, days: int, timeframes: str, output: str):
                     for tf, df in data.items():
                         print(f"  {tf:>4}: {len(df):>6} candles")
                         if len(df) > 0:
-                            start_date = df.index[0].strftime("%Y-%m-%d %H:%M")
-                            end_date = df.index[-1].strftime("%Y-%m-%d %H:%M")
-                            print(f"        {start_date} → {end_date}")
+                            period_start_str = df.index[0].strftime("%Y-%m-%d %H:%M")
+                            period_end_str = df.index[-1].strftime("%Y-%m-%d %H:%M")
+                            print(f"        {period_start_str} → {period_end_str}")
                             
                             # Show some price statistics
                             price_min = df['low'].min()

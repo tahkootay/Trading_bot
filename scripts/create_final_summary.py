@@ -25,8 +25,13 @@ def load_backtest_results():
 def load_real_data_stats():
     """Load real market data statistics."""
     try:
-        # Load real data to get stats
-        df_5m = pd.read_csv('data/SOLUSDT_5m_real_7d.csv')
+        # Locate latest available 5m real file
+        from pathlib import Path
+        candidates = sorted(Path('data').glob('SOLUSDT_5m_real_*.csv'), key=lambda x: x.stat().st_mtime)
+        if not candidates:
+            raise FileNotFoundError("No SOLUSDT_5m_real_*.csv files found")
+        latest = candidates[-1]
+        df_5m = pd.read_csv(latest)
         df_5m['timestamp'] = pd.to_datetime(df_5m['timestamp'])
         df_5m.set_index('timestamp', inplace=True)
         

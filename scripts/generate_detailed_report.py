@@ -14,38 +14,32 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 def load_market_data():
     """Load market data for analysis (prefers real data over testnet)."""
-    # Try real data first
-    data_files = {
-        '1m': 'data/SOLUSDT_1m_real_7d.csv',
-        '5m': 'data/SOLUSDT_5m_real_7d.csv', 
-        '15m': 'data/SOLUSDT_15m_real_7d.csv',
-        '1h': 'data/SOLUSDT_1h_real_7d.csv'
-    }
-    
-    # Check if real data exists, otherwise fallback to testnet
-    real_data_exists = any(Path(file_path).exists() for file_path in data_files.values())
-    
-    if not real_data_exists:
-        print("⚠️  Real data not found, using testnet data...")
-        data_files = {
-            '1m': 'data/SOLUSDT_1m_testnet.csv',
-            '5m': 'data/SOLUSDT_5m_testnet.csv', 
-            '15m': 'data/SOLUSDT_15m_testnet.csv',
-            '1h': 'data/SOLUSDT_1h_testnet.csv'
-        }
-    else:
-        print("✅ Using real market data...")
-    
+    # Prefer any real data files matching patterns
+    candidates = list(Path('data').glob('SOLUSDT_*_real_*.csv'))
     data = {}
-    for timeframe, file_path in data_files.items():
-        if Path(file_path).exists():
-            df = pd.read_csv(file_path)
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            df.set_index('timestamp', inplace=True)
-            df.sort_index(inplace=True)
-            data[timeframe] = df
-            print(f"✅ Loaded {len(df)} candles for {timeframe}")
-    
+    if candidates:
+        print("✅ Using real market data...")
+        for tf in ['1m', '5m', '15m', '1h']:
+            tf_files = sorted([p for p in candidates if f"_{tf}_real_" in p.name], key=lambda x: x.stat().st_mtime)
+            if tf_files:
+                file_path = tf_files[-1]
+                df = pd.read_csv(file_path)
+                df['timestamp'] = pd.to_datetime(df['timestamp'])
+                df.set_index('timestamp', inplace=True)
+                df.sort_index(inplace=True)
+                data[tf] = df
+                print(f"✅ Loaded {len(df)} candles for {tf} from {file_path.name}")
+    else:
+        print("⚠️  Real data not found, using testnet data...")
+        for tf in ['1m', '5m', '15m', '1h']:
+            file_path = Path(f'data/SOLUSDT_{tf}_testnet.csv')
+            if file_path.exists():
+                df = pd.read_csv(file_path)
+                df['timestamp'] = pd.to_datetime(df['timestamp'])
+                df.set_index('timestamp', inplace=True)
+                df.sort_index(inplace=True)
+                data[tf] = df
+                print(f"✅ Loaded {len(df)} candles for {tf} from {file_path.name}")
     return data
 
 def calculate_simple_indicators(df):

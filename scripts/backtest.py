@@ -14,7 +14,10 @@ import click
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from src.feature_engine.technical_indicators import FeatureEngine, TechnicalIndicatorCalculator
-from src.models.ml_models import MLModelPredictor
+try:
+    from src.models.ml_models import MLModelPredictor
+except ImportError:
+    from src.models.ml_models_mock import MLModelPredictor
 from src.signal_generator.signal_generator import TradingSignalGenerator
 from src.risk_manager.risk_manager import RiskManager
 from src.utils.types import TimeFrame, Signal, SignalType

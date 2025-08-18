@@ -11,12 +11,13 @@ import numpy as np
 import click
 import json
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add project root to path so that 'src' package is importable
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.feature_engine.technical_indicators import FeatureEngine, TechnicalIndicatorCalculator
 from src.utils.types import TimeFrame, Signal, SignalType
 from src.utils.logger import setup_logging, TradingLogger
+from src.utils.data_blocks import DataBlockManager
 
 
 class EnhancedBacktestEngine:
@@ -63,8 +64,52 @@ class EnhancedBacktestEngine:
             'position_size_pct': 0.02,  # 2% of balance
         }
     
-    def load_data_from_files(self, symbol: str, data_dir: str = "data") -> Dict[TimeFrame, pd.DataFrame]:
-        """Load data from CSV files."""
+    def load_data_from_block(self, block_id: str) -> Dict[TimeFrame, pd.DataFrame]:
+        """Load data from a fixed data block."""
+        print(f"📦 Loading data from block: {block_id}")
+        
+        try:
+            manager = DataBlockManager()
+            block_data = manager.load_block(block_id)
+            
+            if not block_data:
+                raise ValueError(f"No data loaded from block {block_id}")
+            
+            # Convert to TimeFrame enum format
+            timeframe_map = {
+                "1m": TimeFrame.M1,
+                "5m": TimeFrame.M5,
+                "15m": TimeFrame.M15,
+                "1h": TimeFrame.H1,
+            }
+            
+            data = {}
+            for tf_str, df in block_data.items():
+                if tf_str in timeframe_map:
+                    # Prepare DataFrame for backtesting
+                    df = df.copy()
+                    df.set_index('timestamp', inplace=True)
+                    df.sort_index(inplace=True)
+                    
+                    data[timeframe_map[tf_str]] = df
+                    print(f"  ✅ Loaded {len(df)} candles for {tf_str} from block")
+            
+            # Get block info for logging
+            block_info = manager.get_block_info(block_id)
+            if block_info:
+                print(f"  📊 Block period: {block_info.start_time} - {block_info.end_time}")
+                print(f"  🏷️  Block type: {block_info.block_type.value}")
+                print(f"  📈 Price range: {block_info.characteristics.get('min_price', 'N/A')} - {block_info.characteristics.get('max_price', 'N/A')}")
+            
+            return data
+            
+        except Exception as e:
+            print(f"❌ Failed to load block {block_id}: {e}")
+            print("🔄 Falling back to file loading...")
+            return self.load_data_from_files_legacy(symbol="SOLUSDT")
+    
+    def load_data_from_files_legacy(self, symbol: str, data_dir: str = "data") -> Dict[TimeFrame, pd.DataFrame]:
+        """Load data from CSV files (legacy method)."""
         data = {}
         data_path = Path(data_dir)
         
@@ -674,8 +719,11 @@ class EnhancedBacktestEngine:
 @click.option("--balance", default=10000.0, help="Initial balance")
 @click.option("--commission", default=0.001, help="Commission rate")
 @click.option("--days", help="Limit backtest to recent N days")
+@click.option("--start-date", help="Start date (YYYY-MM-DD or ISO) to limit backtest period")
+@click.option("--end-date", help="End date (YYYY-MM-DD or ISO) to limit backtest period (inclusive)")
 @click.option("--save-results", is_flag=True, help="Save detailed results to file")
-def main(symbol: str, data_dir: str, balance: float, commission: float, days: Optional[int], save_results: bool):
+@click.option("--block-id", help="Use fixed data block instead of files")
+def main(symbol: str, data_dir: str, balance: float, commission: float, days: Optional[int], start_date: Optional[str], end_date: Optional[str], save_results: bool, block_id: Optional[str]):
     """Run enhanced backtesting using real Bybit data."""
     
     # Setup logging
@@ -684,7 +732,11 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
     print(f"🔬 Enhanced Backtest for {symbol}")
     print(f"💰 Initial Balance: ${balance:,.2f}")
     print(f"💸 Commission Rate: {commission:.3%}")
-    print(f"📁 Data Directory: {data_dir}")
+    
+    if block_id:
+        print(f"📦 Using Data Block: {block_id}")
+    else:
+        print(f"📁 Data Directory: {data_dir}")
     print()
     
     # Initialize backtest engine
@@ -696,7 +748,10 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
     # Load data
     print("📊 Loading market data...")
     try:
-        data = engine.load_data_from_files(symbol, data_dir)
+        if block_id:
+            data = engine.load_data_from_block(block_id)
+        else:
+            data = engine.load_data_from_files_legacy(symbol, data_dir)
         
         if not data:
             print("❌ No data files found. Please run data collection first:")
@@ -705,20 +760,40 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
         
         print(f"✅ Loaded data for {len(data)} timeframes")
         
-        # Set date range if specified
-        start_date = None
-        if days:
+        # Determine date range if specified
+        parsed_start: Optional[datetime] = None
+        parsed_end: Optional[datetime] = None
+
+        if days and not start_date and not end_date:
             latest_data = max(data.values(), key=len)
-            end_date = latest_data.index[-1]
-            start_date = end_date - timedelta(days=int(days))
-            print(f"📅 Limiting to last {days} days: {start_date.date()} → {end_date.date()}")
+            parsed_end = latest_data.index[-1]
+            parsed_start = parsed_end - timedelta(days=int(days))
+            print(f"📅 Limiting to last {days} days: {parsed_start.date()} → {parsed_end.date()}")
+
+        # Parse explicit start/end if provided
+        def _parse_date(s: str) -> datetime:
+            try:
+                return datetime.fromisoformat(s)
+            except Exception:
+                return datetime.strptime(s, "%Y-%m-%d")
+
+        if start_date:
+            parsed_start = _parse_date(start_date)
+        if end_date:
+            # Make end inclusive to end of day if only date was provided
+            parsed_end = _parse_date(end_date)
+            if parsed_end.hour == 0 and parsed_end.minute == 0 and parsed_end.second == 0:
+                parsed_end = parsed_end.replace(hour=23, minute=59, second=59, microsecond=999000)
+        if parsed_start or parsed_end:
+            print(f"📅 Limiting by range: {parsed_start if parsed_start else 'from start'} → {parsed_end if parsed_end else 'to end'}")
         
         # Run backtest
         print("🚀 Running enhanced backtest...")
         results = engine.run_backtest(
             symbol=symbol, 
             data=data,
-            start_date=start_date,
+            start_date=parsed_start,
+            end_date=parsed_end,
         )
         
         # Print results
@@ -729,21 +804,33 @@ def main(symbol: str, data_dir: str, balance: float, commission: float, days: Op
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             # Ensure Output directory exists
-            Path("../Output").mkdir(exist_ok=True)
-            results_file = f"../Output/backtest_results_{symbol}_{timestamp}.json"
+            Path("Output").mkdir(exist_ok=True)
+            results_file = f"Output/backtest_results_{symbol}_{timestamp}.json"
             
             # Add trade details
             detailed_results = results.copy()
             detailed_results['trades'] = engine.trades
             detailed_results['equity_curve'] = engine.equity_curve
-            detailed_results['signals'] = [
-                {
-                    'timestamp': s['timestamp'].isoformat(),
-                    'signal_type': s['signal'].signal_type.value,
-                    'confidence': s['signal'].confidence,
-                    'price': s['price'],
-                } for s in engine.signals_generated
-            ]
+            # Save signals with reasoning and features for detailed analysis
+            detailed_results['signals'] = []
+            for s in engine.signals_generated:
+                try:
+                    detailed_results['signals'].append({
+                        'timestamp': s['timestamp'].isoformat(),
+                        'signal_type': s['signal'].signal_type.value,
+                        'confidence': s['signal'].confidence,
+                        'price': s['price'],
+                        'reasoning': s['signal'].reasoning,
+                        'features': s.get('features', {}),
+                    })
+                except Exception:
+                    # Fallback minimal record
+                    detailed_results['signals'].append({
+                        'timestamp': s.get('timestamp').isoformat() if isinstance(s.get('timestamp'), datetime) else str(s.get('timestamp')),
+                        'signal_type': getattr(s.get('signal'), 'signal_type', None).value if getattr(s.get('signal'), 'signal_type', None) else None,
+                        'confidence': getattr(s.get('signal'), 'confidence', None),
+                        'price': s.get('price'),
+                    })
             
             with open(results_file, 'w') as f:
                 json.dump(detailed_results, f, indent=2, default=str)
