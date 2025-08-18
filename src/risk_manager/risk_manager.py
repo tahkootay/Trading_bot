@@ -98,9 +98,413 @@ class RiskManager:
         self.max_daily_profit = 0.0
         self.consecutive_losses = 0
         self.last_loss_time: Optional[datetime] = None
-        self.total_risk_exposure = 0.0
         self.is_trading_paused = False
         self.pause_until: Optional[datetime] = None
+        self.risk_events: List[RiskEvent] = []
+        self.peak_equity = config.get("initial_balance", 10000.0)
+        self.current_equity = self.peak_equity
+        self.account_state: Optional[Account] = None
+        self.current_positions: List[Position] = []
+        
+        # Emergency state
+        self.emergency_mode = False
+        self.last_price_check = {}
+        self.price_history = {}
+        self.total_risk_exposure = 0.0
+    
+    def check_emergency_conditions(self, market_data: Dict) -> Optional[RiskAction]:
+        """
+        Check for emergency conditions requiring immediate action
+        Implements algorithm specification for emergency stops
+        
+        Args:
+            market_data: Current market data including price, volatility, etc.
+            
+        Returns:
+            RiskAction if emergency condition detected, None otherwise
+        """
+        try:
+            current_time = datetime.now()
+            
+            # 1. Flash crash/pump detection (5% in 1 minute)
+            flash_crash_action = self._check_flash_crash(market_data)
+            if flash_crash_action:
+                self._log_risk_event(
+                    risk_type="flash_crash",
+                    risk_level=RiskLevel.CRITICAL,
+                    symbol=market_data.get('symbol', 'SOLUSDT'),
+                    description=f"Extreme price movement detected",
+                    current_value=market_data.get('price_change_1m', 0),
+                    threshold=self.extreme_1m_move,
+                    action_taken=flash_crash_action
+                )
+                return flash_crash_action
+            
+            # 2. Black swan drawdown (15%)
+            black_swan_action = self._check_black_swan_drawdown()
+            if black_swan_action:
+                self._log_risk_event(
+                    risk_type="black_swan_drawdown",
+                    risk_level=RiskLevel.CRITICAL,
+                    symbol="ACCOUNT",
+                    description=f"Extreme drawdown detected",
+                    current_value=self.calculate_current_drawdown(),
+                    threshold=self.black_swan_dd,
+                    action_taken=black_swan_action
+                )
+                return black_swan_action
+            
+            # 3. Extreme volatility spike
+            volatility_action = self._check_extreme_volatility(market_data)
+            if volatility_action:
+                self._log_risk_event(
+                    risk_type="extreme_volatility",
+                    risk_level=RiskLevel.HIGH,
+                    symbol=market_data.get('symbol', 'SOLUSDT'),
+                    description=f"Extreme volatility spike",
+                    current_value=market_data.get('atr', 0),
+                    threshold=market_data.get('atr_20d_avg', 0) * 3,
+                    action_taken=volatility_action
+                )
+                return volatility_action
+            
+            # 4. Liquidity crisis (spread too wide)
+            liquidity_action = self._check_liquidity_crisis(market_data)
+            if liquidity_action:
+                self._log_risk_event(
+                    risk_type="liquidity_crisis",
+                    risk_level=RiskLevel.HIGH,
+                    symbol=market_data.get('symbol', 'SOLUSDT'),
+                    description=f"Liquidity crisis detected",
+                    current_value=market_data.get('spread_pct', 0),
+                    threshold=0.005,  # 0.5% spread
+                    action_taken=liquidity_action
+                )
+                return liquidity_action
+            
+            # 5. Daily loss limit breach
+            daily_loss_action = self._check_daily_loss_limit()
+            if daily_loss_action:
+                self._log_risk_event(
+                    risk_type="daily_loss_limit",
+                    risk_level=RiskLevel.HIGH,
+                    symbol="ACCOUNT",
+                    description=f"Daily loss limit exceeded",
+                    current_value=abs(self.daily_pnl / self.current_equity),
+                    threshold=self.max_daily_loss,
+                    action_taken=daily_loss_action
+                )
+                return daily_loss_action
+            
+            # 6. Consecutive losses
+            consecutive_loss_action = self._check_consecutive_losses()
+            if consecutive_loss_action:
+                self._log_risk_event(
+                    risk_type="consecutive_losses",
+                    risk_level=RiskLevel.MEDIUM,
+                    symbol="TRADING",
+                    description=f"Too many consecutive losses",
+                    current_value=self.consecutive_losses,
+                    threshold=self.max_consecutive_losses,
+                    action_taken=consecutive_loss_action
+                )
+                return consecutive_loss_action
+            
+            return None
+            
+        except Exception as e:
+            self.logger.log_error(
+                error_type="emergency_check_failed",
+                component="risk_manager",
+                error_message=str(e)
+            )
+            return None
+    
+    def _check_flash_crash(self, market_data: Dict) -> Optional[RiskAction]:
+        """Check for flash crash/pump (5% in 1 minute)"""
+        try:
+            price_change_1m = market_data.get('price_change_1m', 0)
+            
+            if abs(price_change_1m) >= self.extreme_1m_move:
+                self.emergency_mode = True
+                return RiskAction.EMERGENCY_STOP
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _check_black_swan_drawdown(self) -> Optional[RiskAction]:
+        """Check for black swan drawdown (15%)"""
+        try:
+            current_dd = self.calculate_current_drawdown()
+            
+            if current_dd >= self.black_swan_dd:
+                self.emergency_mode = True
+                return RiskAction.EMERGENCY_STOP
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _check_extreme_volatility(self, market_data: Dict) -> Optional[RiskAction]:
+        """Check for extreme volatility spike (3x normal)"""
+        try:
+            current_atr = market_data.get('atr', 0)
+            avg_atr = market_data.get('atr_20d_avg', current_atr)
+            
+            if avg_atr > 0 and current_atr > avg_atr * 3:
+                return RiskAction.PAUSE_TRADING
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _check_liquidity_crisis(self, market_data: Dict) -> Optional[RiskAction]:
+        """Check for liquidity crisis (wide spreads)"""
+        try:
+            spread_pct = market_data.get('spread_pct', 0)
+            
+            if spread_pct > 0.005:  # 0.5% spread
+                return RiskAction.PAUSE_TRADING
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _check_daily_loss_limit(self) -> Optional[RiskAction]:
+        """Check daily loss limit"""
+        try:
+            if self.current_equity > 0:
+                daily_loss_pct = abs(self.daily_pnl) / self.current_equity
+                
+                if daily_loss_pct >= self.max_daily_loss:
+                    self._pause_until_tomorrow()
+                    return RiskAction.CLOSE_POSITIONS
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _check_consecutive_losses(self) -> Optional[RiskAction]:
+        """Check consecutive losses"""
+        try:
+            if self.consecutive_losses >= self.max_consecutive_losses:
+                self._pause_trading(self.pause_after_losses_hours * 60)  # Convert to minutes
+                return RiskAction.PAUSE_TRADING
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def calculate_current_drawdown(self) -> float:
+        """Calculate current drawdown from peak equity"""
+        try:
+            if self.peak_equity <= 0:
+                return 0.0
+            
+            return max(0.0, (self.peak_equity - self.current_equity) / self.peak_equity)
+            
+        except Exception:
+            return 0.0
+    
+    def record_trade_result(
+        self,
+        symbol: str,
+        side: str,
+        entry_price: float,
+        exit_price: float,
+        quantity: float,
+        pnl: float,
+        signal_confidence: float,
+        trade_duration: timedelta
+    ):
+        """
+        Record trade result and update risk metrics
+        
+        Args:
+            symbol: Trading symbol
+            side: 'long' or 'short'
+            entry_price: Entry price
+            exit_price: Exit price
+            quantity: Position quantity
+            pnl: Profit/Loss
+            signal_confidence: Original signal confidence
+            trade_duration: Time in position
+        """
+        try:
+            # Update daily PnL
+            self.daily_pnl += pnl
+            
+            # Update equity
+            self.current_equity += pnl
+            
+            # Update peak equity if new high
+            if self.current_equity > self.peak_equity:
+                self.peak_equity = self.current_equity
+            
+            # Update consecutive losses
+            if pnl < 0:
+                self.consecutive_losses += 1
+                self.last_loss_time = datetime.now()
+            else:
+                self.consecutive_losses = 0
+            
+            # Log trade result
+            self.logger.log_trade(
+                action="closed",
+                symbol=symbol,
+                side=side,
+                size=quantity,
+                price=exit_price,
+                metadata={
+                    'entry_price': entry_price,
+                    'pnl': pnl,
+                    'signal_confidence': signal_confidence,
+                    'trade_duration_min': trade_duration.total_seconds() / 60,
+                    'consecutive_losses': self.consecutive_losses
+                }
+            )
+            
+            # Check if we need to pause trading
+            if self.consecutive_losses >= self.max_consecutive_losses:
+                self._pause_trading(self.pause_after_losses_hours * 60)
+            
+            # Check daily loss limit
+            if self.current_equity > 0:
+                daily_loss_pct = abs(self.daily_pnl) / self.current_equity
+                if daily_loss_pct >= self.max_daily_loss:
+                    self._pause_until_tomorrow()
+            
+        except Exception as e:
+            self.logger.log_error(
+                error_type="trade_result_recording_failed",
+                component="risk_manager",
+                error_message=str(e)
+            )
+    
+    def _pause_trading(self, minutes: int):
+        """Pause trading for specified minutes"""
+        self.is_trading_paused = True
+        self.pause_until = datetime.now() + timedelta(minutes=minutes)
+        
+        self.logger.log_system_event(
+            event_type="trading_paused",
+            component="risk_manager",
+            status="paused",
+            details={
+                'pause_duration_min': minutes,
+                'pause_until': self.pause_until.isoformat(),
+                'reason': 'consecutive_losses'
+            }
+        )
+    
+    def _pause_until_tomorrow(self):
+        """Pause trading until next day"""
+        now = datetime.now()
+        tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        
+        self.is_trading_paused = True
+        self.pause_until = tomorrow
+        
+        self.logger.log_system_event(
+            event_type="trading_paused_until_tomorrow",
+            component="risk_manager",
+            status="paused",
+            details={
+                'pause_until': tomorrow.isoformat(),
+                'reason': 'daily_loss_limit',
+                'daily_pnl': self.daily_pnl
+            }
+        )
+    
+    def _log_risk_event(
+        self,
+        risk_type: str,
+        risk_level: RiskLevel,
+        symbol: str,
+        description: str,
+        current_value: float,
+        threshold: float,
+        action_taken: RiskAction
+    ):
+        """Log risk event"""
+        event = RiskEvent(
+            timestamp=datetime.now(),
+            risk_type=risk_type,
+            risk_level=risk_level,
+            symbol=symbol,
+            description=description,
+            current_value=current_value,
+            threshold=threshold,
+            action_taken=action_taken,
+            details={
+                'equity': self.current_equity,
+                'daily_pnl': self.daily_pnl,
+                'drawdown': self.calculate_current_drawdown(),
+                'consecutive_losses': self.consecutive_losses
+            }
+        )
+        
+        self.risk_events.append(event)
+        
+        # Keep only last 1000 events
+        if len(self.risk_events) > 1000:
+            self.risk_events = self.risk_events[-1000:]
+        
+        # Log to system
+        self.logger.log_risk_event(
+            event_type=risk_type,
+            symbol=symbol,
+            risk_level=risk_level.value,
+            details=event.details,
+            action_taken=action_taken.value
+        )
+    
+    def get_recent_risk_events(self, hours: int = 24) -> List[RiskEvent]:
+        """Get recent risk events"""
+        cutoff_time = datetime.now() - timedelta(hours=hours)
+        return [
+            event for event in self.risk_events
+            if event.timestamp >= cutoff_time
+        ]
+    
+    def get_risk_metrics(self) -> Dict[str, Any]:
+        """Get current risk metrics"""
+        return {
+            'current_equity': self.current_equity,
+            'peak_equity': self.peak_equity,
+            'current_drawdown': self.calculate_current_drawdown(),
+            'daily_pnl': self.daily_pnl,
+            'daily_pnl_pct': self.daily_pnl / self.current_equity if self.current_equity > 0 else 0,
+            'consecutive_losses': self.consecutive_losses,
+            'is_trading_paused': self.is_trading_paused,
+            'pause_until': self.pause_until.isoformat() if self.pause_until else None,
+            'emergency_mode': self.emergency_mode,
+            'total_risk_exposure': self.total_risk_exposure,
+            'risk_events_24h': len(self.get_recent_risk_events(24)),
+            'active_positions': len(self.current_positions)
+        }
+    
+    def reset_daily_metrics(self):
+        """Reset daily metrics (call at start of each day)"""
+        self.daily_pnl = 0.0
+        self.max_daily_profit = 0.0
+        
+        self.logger.log_system_event(
+            event_type="daily_metrics_reset",
+            component="risk_manager",
+            status="reset",
+            details={
+                'date': datetime.now().date().isoformat(),
+                'starting_equity': self.current_equity
+            }
+        )
         
         # Position tracking
         self.current_positions: Dict[str, Position] = {}

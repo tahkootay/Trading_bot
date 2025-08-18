@@ -68,6 +68,21 @@ class TechnicalIndicatorCalculator:
             # VWAP with bands (enhanced version)
             indicators.update(self._calculate_vwap_with_bands(df))
             
+            # Liquidity pools identification (algorithm requirement)
+            indicators.update(self._identify_liquidity_pools(df))
+            
+            # MACD with enhanced calculation (algorithm requirement)
+            indicators.update(self._calculate_enhanced_macd(df))
+            
+            # ADX with DI calculation (algorithm requirement)
+            indicators.update(self._calculate_enhanced_adx(df))
+            
+            # Parabolic SAR (algorithm requirement)
+            indicators.update(self._calculate_parabolic_sar(df))
+            
+            # Market structure analysis (algorithm requirement)
+            indicators.update(self._analyze_market_structure(df))
+            
             # Create TechnicalIndicators object with latest values - filter to known fields
             known_fields = {
                 'ema_8', 'ema_13', 'ema_21', 'ema_34', 'ema_55', 'sma_20', 'hull_ma', 'vwma',
@@ -1041,3 +1056,280 @@ class FeatureEngine:
             else:
                 break
         return count
+    
+    def _identify_liquidity_pools(self, df: pd.DataFrame) -> Dict[str, Union[float, list]]:
+        """
+        Identify liquidity pools as specified in algorithm
+        Used for liquidity hunt setups
+        """
+        high = df['high']
+        low = df['low']
+        volume = df['volume']
+        close = df['close']
+        
+        liquidity_pools = []
+        
+        # Look for equal highs/lows (liquidity resting areas)
+        for i in range(20, len(df) - 20):
+            # Check for equal highs
+            level = high.iloc[i]
+            equal_touches = 0
+            
+            # Look for prices within 0.1% of level
+            for j in range(max(0, i-50), min(len(df), i+50)):
+                if j != i and abs(high.iloc[j] - level) / level < 0.001:
+                    equal_touches += 1
+            
+            if equal_touches >= 2:  # At least 2 other equal highs
+                volume_cluster = volume.iloc[max(0, i-5):i+5].sum()
+                liquidity_pools.append({
+                    'level': level,
+                    'type': 'resistance',
+                    'touches': equal_touches + 1,
+                    'volume': volume_cluster,
+                    'strength': (equal_touches + 1) * volume_cluster / volume.mean()
+                })
+            
+            # Check for equal lows
+            level = low.iloc[i]
+            equal_touches = 0
+            
+            for j in range(max(0, i-50), min(len(df), i+50)):
+                if j != i and abs(low.iloc[j] - level) / level < 0.001:
+                    equal_touches += 1
+            
+            if equal_touches >= 2:
+                volume_cluster = volume.iloc[max(0, i-5):i+5].sum()
+                liquidity_pools.append({
+                    'level': level,
+                    'type': 'support',
+                    'touches': equal_touches + 1,
+                    'volume': volume_cluster,
+                    'strength': (equal_touches + 1) * volume_cluster / volume.mean()
+                })
+        
+        # Sort by strength and keep top pools
+        liquidity_pools.sort(key=lambda x: x['strength'], reverse=True)
+        
+        return {
+            'liquidity_pools': liquidity_pools[:10],
+            'nearest_liquidity': min([p['level'] for p in liquidity_pools[:5]], default=close.iloc[-1], key=lambda x: abs(x - close.iloc[-1]))
+        }
+    
+    def _calculate_enhanced_macd(self, df: pd.DataFrame) -> Dict[str, pd.Series]:
+        """
+        Enhanced MACD calculation as per algorithm specification
+        """
+        close = df['close']
+        
+        # Algorithm parameters: 12, 26, 9
+        ema_fast = close.ewm(span=12).mean()
+        ema_slow = close.ewm(span=26).mean()
+        macd = ema_fast - ema_slow
+        macd_signal = macd.ewm(span=9).mean()
+        macd_hist = macd - macd_signal
+        
+        # Additional MACD features for algorithm
+        macd_zero_cross = ((macd.shift(1) <= 0) & (macd > 0)).astype(int)
+        macd_signal_cross = ((macd.shift(1) <= macd_signal.shift(1)) & (macd > macd_signal)).astype(int)
+        
+        return {
+            'macd': macd.fillna(0),
+            'macd_signal': macd_signal.fillna(0),
+            'macd_hist': macd_hist.fillna(0),
+            'macd_zero_cross': macd_zero_cross,
+            'macd_signal_cross': macd_signal_cross
+        }
+    
+    def _calculate_enhanced_adx(self, df: pd.DataFrame, period: int = 14) -> Dict[str, pd.Series]:
+        """
+        Enhanced ADX calculation with DI+ and DI- as per algorithm
+        """
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        
+        # True Range
+        tr1 = high - low
+        tr2 = np.abs(high - close.shift(1))
+        tr3 = np.abs(low - close.shift(1))
+        true_range = np.maximum(tr1, np.maximum(tr2, tr3))
+        
+        # Directional Movement
+        dm_plus = np.where((high - high.shift(1)) > (low.shift(1) - low), 
+                          np.maximum(high - high.shift(1), 0), 0)
+        dm_minus = np.where((low.shift(1) - low) > (high - high.shift(1)), 
+                           np.maximum(low.shift(1) - low, 0), 0)
+        
+        # Smoothed values
+        tr_smooth = pd.Series(true_range).rolling(window=period).mean()
+        dm_plus_smooth = pd.Series(dm_plus).rolling(window=period).mean()
+        dm_minus_smooth = pd.Series(dm_minus).rolling(window=period).mean()
+        
+        # Directional Indicators
+        di_plus = 100 * dm_plus_smooth / tr_smooth
+        di_minus = 100 * dm_minus_smooth / tr_smooth
+        
+        # ADX calculation
+        dx = 100 * np.abs(di_plus - di_minus) / (di_plus + di_minus)
+        adx = dx.rolling(window=period).mean()
+        
+        return {
+            'adx': adx.fillna(20),
+            'di_plus': di_plus.fillna(20),
+            'di_minus': di_minus.fillna(20),
+            'dx': dx.fillna(0)
+        }
+    
+    def _calculate_parabolic_sar(self, df: pd.DataFrame, af_start: float = 0.02, af_increment: float = 0.02, af_max: float = 0.2) -> Dict[str, pd.Series]:
+        """
+        Parabolic SAR calculation as required by algorithm for trailing stops
+        """
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        
+        psar = pd.Series(index=df.index, dtype=float)
+        direction = pd.Series(index=df.index, dtype=int)  # 1 for uptrend, -1 for downtrend
+        af = pd.Series(index=df.index, dtype=float)
+        ep = pd.Series(index=df.index, dtype=float)  # Extreme Point
+        
+        # Initialize first values
+        psar.iloc[0] = low.iloc[0]
+        direction.iloc[0] = 1
+        af.iloc[0] = af_start
+        ep.iloc[0] = high.iloc[0]
+        
+        for i in range(1, len(df)):
+            if direction.iloc[i-1] == 1:  # Uptrend
+                psar.iloc[i] = psar.iloc[i-1] + af.iloc[i-1] * (ep.iloc[i-1] - psar.iloc[i-1])
+                
+                # Check for trend reversal
+                if low.iloc[i] <= psar.iloc[i]:
+                    direction.iloc[i] = -1
+                    psar.iloc[i] = ep.iloc[i-1]
+                    af.iloc[i] = af_start
+                    ep.iloc[i] = low.iloc[i]
+                else:
+                    direction.iloc[i] = 1
+                    # Update extreme point and acceleration factor
+                    if high.iloc[i] > ep.iloc[i-1]:
+                        ep.iloc[i] = high.iloc[i]
+                        af.iloc[i] = min(af.iloc[i-1] + af_increment, af_max)
+                    else:
+                        ep.iloc[i] = ep.iloc[i-1]
+                        af.iloc[i] = af.iloc[i-1]
+                    
+                    # Ensure PSAR doesn't exceed previous two lows
+                    psar.iloc[i] = min(psar.iloc[i], low.iloc[i-1])
+                    if i > 1:
+                        psar.iloc[i] = min(psar.iloc[i], low.iloc[i-2])
+                        
+            else:  # Downtrend
+                psar.iloc[i] = psar.iloc[i-1] + af.iloc[i-1] * (ep.iloc[i-1] - psar.iloc[i-1])
+                
+                # Check for trend reversal
+                if high.iloc[i] >= psar.iloc[i]:
+                    direction.iloc[i] = 1
+                    psar.iloc[i] = ep.iloc[i-1]
+                    af.iloc[i] = af_start
+                    ep.iloc[i] = high.iloc[i]
+                else:
+                    direction.iloc[i] = -1
+                    # Update extreme point and acceleration factor
+                    if low.iloc[i] < ep.iloc[i-1]:
+                        ep.iloc[i] = low.iloc[i]
+                        af.iloc[i] = min(af.iloc[i-1] + af_increment, af_max)
+                    else:
+                        ep.iloc[i] = ep.iloc[i-1]
+                        af.iloc[i] = af.iloc[i-1]
+                    
+                    # Ensure PSAR doesn't exceed previous two highs
+                    psar.iloc[i] = max(psar.iloc[i], high.iloc[i-1])
+                    if i > 1:
+                        psar.iloc[i] = max(psar.iloc[i], high.iloc[i-2])
+        
+        return {
+            'parabolic_sar': psar.fillna(method='ffill'),
+            'psar_direction': direction.fillna(1),
+            'psar_af': af.fillna(af_start),
+            'psar_ep': ep.fillna(method='ffill')
+        }
+    
+    def _analyze_market_structure(self, df: pd.DataFrame) -> Dict[str, Union[float, int, str]]:
+        """
+        Analyze market structure as required by algorithm
+        Identifies market character, trend quality, and structure breaks
+        """
+        high = df['high']
+        low = df['low']
+        close = df['close']
+        
+        # Find swing points
+        swing_data = self._identify_swing_points(df)
+        swing_points = swing_data['swing_points']
+        
+        if len(swing_points) < 4:
+            return {
+                'market_character': 'ranging',
+                'trend_quality': 'weak',
+                'structure_break': False,
+                'last_break_type': 'none'
+            }
+        
+        # Analyze recent swing points for structure
+        recent_swings = swing_points[-6:]  # Last 6 swing points
+        highs = [sp for sp in recent_swings if sp['type'] == 'high']
+        lows = [sp for sp in recent_swings if sp['type'] == 'low']
+        
+        # Determine market character
+        market_character = 'ranging'
+        if len(highs) >= 2 and len(lows) >= 2:
+            # Check for higher highs and higher lows (uptrend)
+            if (len(highs) >= 2 and highs[-1]['price'] > highs[-2]['price'] and
+                len(lows) >= 2 and lows[-1]['price'] > lows[-2]['price']):
+                market_character = 'uptrending'
+            
+            # Check for lower highs and lower lows (downtrend)
+            elif (len(highs) >= 2 and highs[-1]['price'] < highs[-2]['price'] and
+                  len(lows) >= 2 and lows[-1]['price'] < lows[-2]['price']):
+                market_character = 'downtrending'
+        
+        # Assess trend quality
+        trend_quality = 'weak'
+        if market_character != 'ranging':
+            # Strong trend: consistent structure with good momentum
+            price_move_pct = abs(close.iloc[-1] - close.iloc[-20]) / close.iloc[-20]
+            if price_move_pct > 0.05:  # 5% move in 20 periods
+                trend_quality = 'strong'
+            elif price_move_pct > 0.02:  # 2% move
+                trend_quality = 'moderate'
+        
+        # Check for recent structure breaks
+        structure_break = False
+        last_break_type = 'none'
+        
+        current_price = close.iloc[-1]
+        if market_character == 'uptrending' and len(lows) >= 1:
+            # Break of structure if price goes below last swing low
+            last_swing_low = lows[-1]['price']
+            if current_price < last_swing_low:
+                structure_break = True
+                last_break_type = 'bearish_break'
+        
+        elif market_character == 'downtrending' and len(highs) >= 1:
+            # Break of structure if price goes above last swing high
+            last_swing_high = highs[-1]['price']
+            if current_price > last_swing_high:
+                structure_break = True
+                last_break_type = 'bullish_break'
+        
+        return {
+            'market_character': market_character,
+            'trend_quality': trend_quality,
+            'structure_break': structure_break,
+            'last_break_type': last_break_type,
+            'swing_points_count': len(swing_points),
+            'recent_highs_count': len(highs),
+            'recent_lows_count': len(lows)
+        }

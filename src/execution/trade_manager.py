@@ -30,7 +30,15 @@ class TargetLevel:
 class TradeManager:
     """
     Manages individual trade lifecycle from entry to exit
-    with sophisticated exit strategies as per algorithm.
+    with sophisticated exit strategies as per algorithm specification.
+    
+    Implements:
+    - Multi-level take profits with automatic partial closes
+    - Multiple trailing stop methods (Parabolic SAR, structure-based, ATR-based)
+    - Time stops adaptive by setup type
+    - Setup invalidation checks
+    - Volatility expansion handling
+    - Profit lock mechanism
     """
     
     def __init__(self, position: Dict, config: Dict = None):
@@ -39,9 +47,16 @@ class TradeManager:
         self.entry_time = time.time()
         self.max_profit = 0.0
         self.max_adverse = 0.0
+        self.max_profit_price = 0.0
         self.tp_executed = []
         self.trailing_active = False
         self.break_even_set = False
+        self.entry_atr = 0.0
+        
+        # Algorithm constants from specification
+        from ..utils.algorithm_constants import SL_TP_PARAMS, TIME_STOPS
+        self.SL_TP_PARAMS = SL_TP_PARAMS
+        self.TIME_STOPS = TIME_STOPS
         
         # Setup targets from position
         self.targets = [
@@ -49,9 +64,431 @@ class TradeManager:
             for target in position.get('targets', [])
         ]
         
+        # Initialize profit lock mechanism
+        self.profit_locked = False
+        self.locked_profit_level = 0.0
+        
+        self.logger = logging.getLogger(__name__)
+        
         # Algorithm constants
         self.PROFIT_LOCK_PCT = self.config.get('profit_lock_pct', 0.70)
         self.TRAILING_ACTIVATION_ATR = self.config.get('trailing_activation', 1.0)
+    
+    def update(self, current_price: float, market_data: Dict) -> TradeAction:
+        """
+        Main update loop for position management as per algorithm specification
+        
+        Args:
+            current_price: Current market price
+            market_data: Current market state including ATR, indicators, etc.
+            
+        Returns:
+            TradeAction to be taken
+        """
+        try:
+            # Store initial ATR if not set
+            if self.entry_atr == 0.0:
+                self.entry_atr = market_data.get('atr', current_price * 0.015)
+            
+            # Update profit/loss tracking
+            self._update_profit_tracking(current_price)
+            
+            # Check take profits (partial closes)
+            tp_action = self._check_take_profits(current_price)
+            if tp_action.action == 'partial_close':
+                return tp_action
+            
+            # Update stop loss (trailing, break-even, profit lock)
+            self._update_stop_loss(current_price, market_data)
+            
+            # Check time stop
+            time_action = self._check_time_stop(market_data)
+            if time_action.action == 'close':
+                return time_action
+            
+            # Check volatility expansion
+            vol_action = self._check_volatility_expansion(market_data)
+            if vol_action.action == 'adjust_stop':
+                return vol_action
+            
+            # Check for setup invalidation
+            invalidation_action = self._check_setup_invalidation(market_data)
+            if invalidation_action.action == 'close':
+                return invalidation_action
+            
+            # Check if stop loss hit
+            if self._is_stop_loss_hit(current_price):
+                return TradeAction(
+                    action='close',
+                    reason='stop_loss',
+                    data={'price': current_price, 'stop_level': self.position['stop_loss']}
+                )
+            
+            return TradeAction(action='hold', reason='all_checks_passed')
+            
+        except Exception as e:
+            self.logger.error(f"Error in trade update: {e}")
+            return TradeAction(action='hold', reason='error_in_update')
+    
+    def _update_profit_tracking(self, current_price: float):
+        """Update maximum profit and adverse movement tracking"""
+        entry_price = self.position['entry']
+        direction = self.position['direction']
+        
+        if direction == 'long':
+            profit = current_price - entry_price
+            adverse = entry_price - current_price if current_price < entry_price else 0
+        else:
+            profit = entry_price - current_price
+            adverse = current_price - entry_price if current_price > entry_price else 0
+        
+        # Update maximums
+        if profit > self.max_profit:
+            self.max_profit = profit
+            self.max_profit_price = current_price
+        
+        if adverse > self.max_adverse:
+            self.max_adverse = adverse
+    
+    def _check_take_profits(self, current_price: float) -> TradeAction:
+        """
+        Execute partial take profits as per algorithm specification
+        """
+        remaining_targets = [tp for tp in self.targets if not tp.executed]
+        
+        for target in remaining_targets:
+            hit = False
+            
+            if self.position['direction'] == 'long':
+                hit = current_price >= target.price
+            else:
+                hit = current_price <= target.price
+            
+            if hit:
+                # Execute partial close
+                close_size = self.position['size'] * target.allocation
+                target.executed = True
+                target.execution_time = datetime.now()
+                self.tp_executed.append(target)
+                
+                # Update position size
+                self.position['size'] -= close_size
+                
+                # Move to break-even after first TP
+                if len(self.tp_executed) == 1:
+                    self.position['stop_loss'] = self.position['entry']
+                    self.trailing_active = True
+                    self.break_even_set = True
+                
+                self.logger.info(f"Take profit {len(self.tp_executed)} executed at {target.price}")
+                
+                return TradeAction(
+                    action='partial_close',
+                    reason=f'take_profit_{len(self.tp_executed)}',
+                    data={
+                        'size': close_size,
+                        'price': target.price,
+                        'remaining_size': self.position['size'],
+                        'target_level': len(self.tp_executed)
+                    }
+                )
+        
+        return TradeAction(action='hold', reason='no_take_profits_hit')
+    
+    def _update_stop_loss(self, current_price: float, market_data: Dict):
+        """
+        Update stop loss using multiple trailing methods as per algorithm
+        """
+        if not self.trailing_active:
+            return
+        
+        atr = market_data.get('atr', self.entry_atr)
+        
+        # Check if we should activate trailing (1 ATR profit reached)
+        if not self.trailing_active and self.max_profit >= self.TRAILING_ACTIVATION_ATR * atr:
+            self.trailing_active = True
+            self.logger.info("Trailing stop activated")
+        
+        if not self.trailing_active:
+            return
+        
+        # Multiple trailing methods - use the most protective
+        potential_stops = []
+        
+        # 1. Parabolic SAR
+        sar_stop = self._calculate_parabolic_sar(market_data)
+        if sar_stop:
+            potential_stops.append(('sar', sar_stop))
+        
+        # 2. Structure-based (swing points)
+        structure_stop = self._get_structure_stop(market_data)
+        if structure_stop:
+            potential_stops.append(('structure', structure_stop))
+        
+        # 3. Percentage of max profit lock
+        if self.max_profit > atr:
+            profit_stop = self._calculate_profit_lock_stop()
+            if profit_stop:
+                potential_stops.append(('profit_lock', profit_stop))
+        
+        # 4. ATR-based trailing
+        atr_stop = self._calculate_atr_trailing_stop(current_price, atr)
+        potential_stops.append(('atr', atr_stop))
+        
+        # Select most protective stop
+        if potential_stops:
+            new_stop = self._select_best_stop(potential_stops)
+            if self._is_stop_improvement(new_stop):
+                old_stop = self.position['stop_loss']
+                self.position['stop_loss'] = new_stop
+                self.logger.info(f"Stop loss updated: {old_stop:.4f} -> {new_stop:.4f}")
+    
+    def _calculate_parabolic_sar(self, market_data: Dict) -> Optional[float]:
+        """
+        Calculate Parabolic SAR for trailing stop
+        Simplified implementation - in production would use full PSAR calculation
+        """
+        try:
+            # For now, use a simplified version based on recent highs/lows
+            # In production, implement full PSAR with acceleration factor
+            recent_prices = market_data.get('close', [])
+            if len(recent_prices) < 5:
+                return None
+            
+            if self.position['direction'] == 'long':
+                # Find recent low for long position
+                recent_lows = market_data.get('low', recent_prices)[-10:]
+                return min(recent_lows) if recent_lows else None
+            else:
+                # Find recent high for short position
+                recent_highs = market_data.get('high', recent_prices)[-10:]
+                return max(recent_highs) if recent_highs else None
+                
+        except Exception:
+            return None
+    
+    def _get_structure_stop(self, market_data: Dict) -> Optional[float]:
+        """
+        Get stop based on market structure (swing points) as per algorithm
+        """
+        try:
+            swing_points = market_data.get('swing_points', [])
+            if not swing_points:
+                return None
+            
+            if self.position['direction'] == 'long':
+                # Find most recent swing low
+                recent_lows = [s['price'] for s in swing_points if s['type'] == 'low']
+                return max(recent_lows) if recent_lows else None
+            else:
+                # Find most recent swing high
+                recent_highs = [s['price'] for s in swing_points if s['type'] == 'high']
+                return min(recent_highs) if recent_highs else None
+                
+        except Exception:
+            return None
+    
+    def _calculate_profit_lock_stop(self) -> Optional[float]:
+        """
+        Calculate stop to lock in percentage of maximum profit
+        """
+        try:
+            if self.max_profit <= 0:
+                return None
+            
+            locked_profit = self.max_profit * self.PROFIT_LOCK_PCT
+            entry_price = self.position['entry']
+            
+            if self.position['direction'] == 'long':
+                return entry_price + locked_profit
+            else:
+                return entry_price - locked_profit
+                
+        except Exception:
+            return None
+    
+    def _calculate_atr_trailing_stop(self, current_price: float, atr: float) -> float:
+        """
+        Calculate ATR-based trailing stop
+        """
+        multiplier = 1.5  # 1.5 ATR trailing distance
+        
+        if self.position['direction'] == 'long':
+            return current_price - (multiplier * atr)
+        else:
+            return current_price + (multiplier * atr)
+    
+    def _select_best_stop(self, potential_stops: List[Tuple[str, float]]) -> float:
+        """
+        Select most protective stop from multiple methods
+        """
+        if not potential_stops:
+            return self.position['stop_loss']
+        
+        direction = self.position['direction']
+        
+        if direction == 'long':
+            # For long positions, highest stop is most protective
+            best_stop = max(stop for _, stop in potential_stops if stop is not None)
+        else:
+            # For short positions, lowest stop is most protective
+            best_stop = min(stop for _, stop in potential_stops if stop is not None)
+        
+        return best_stop
+    
+    def _is_stop_improvement(self, new_stop: float) -> bool:
+        """
+        Check if new stop is an improvement (more protective)
+        """
+        current_stop = self.position['stop_loss']
+        direction = self.position['direction']
+        
+        if direction == 'long':
+            return new_stop > current_stop
+        else:
+            return new_stop < current_stop
+    
+    def _check_time_stop(self, market_data: Dict) -> TradeAction:
+        """
+        Check if position exceeded time limit as per algorithm
+        """
+        try:
+            time_in_position = (time.time() - self.entry_time) / 60  # minutes
+            
+            # Get appropriate time stop based on setup type
+            setup_type = self.position.get('setup_type', 'default')
+            time_limit = self.TIME_STOPS.get(setup_type, self.TIME_STOPS['default'])
+            
+            if time_in_position >= time_limit:
+                # Only close if not in significant profit
+                current_profit_atr = self.max_profit / market_data.get('atr', 1)
+                
+                if current_profit_atr < 0.2:  # Less than 0.2 ATR profit
+                    return TradeAction(
+                        action='close',
+                        reason='time_stop',
+                        data={
+                            'time_in_position': time_in_position,
+                            'time_limit': time_limit,
+                            'setup_type': setup_type
+                        }
+                    )
+            
+            return TradeAction(action='hold', reason='time_limit_not_reached')
+            
+        except Exception as e:
+            self.logger.error(f"Error checking time stop: {e}")
+            return TradeAction(action='hold', reason='time_check_error')
+    
+    def _check_volatility_expansion(self, market_data: Dict) -> TradeAction:
+        """
+        Check for sudden volatility expansion as per algorithm
+        """
+        try:
+            current_atr = market_data.get('atr', self.entry_atr)
+            
+            # If volatility doubled, widen stop
+            if current_atr > self.entry_atr * 2.0:
+                entry_price = self.position['entry']
+                direction = self.position['direction']
+                
+                # Widen stop to 1.5x current ATR
+                if direction == 'long':
+                    new_stop = entry_price - (1.5 * current_atr)
+                else:
+                    new_stop = entry_price + (1.5 * current_atr)
+                
+                return TradeAction(
+                    action='adjust_stop',
+                    reason='volatility_expansion',
+                    data={
+                        'new_stop': new_stop,
+                        'old_atr': self.entry_atr,
+                        'new_atr': current_atr
+                    }
+                )
+            
+            return TradeAction(action='hold', reason='volatility_normal')
+            
+        except Exception as e:
+            self.logger.error(f"Error checking volatility expansion: {e}")
+            return TradeAction(action='hold', reason='volatility_check_error')
+    
+    def _check_setup_invalidation(self, market_data: Dict) -> TradeAction:
+        """
+        Check if original setup conditions are invalidated as per algorithm
+        """
+        try:
+            # Check trend disappearance
+            adx = market_data.get('adx', 25)
+            if adx < 20:
+                return TradeAction(
+                    action='close',
+                    reason='trend_disappeared',
+                    data={'adx': adx}
+                )
+            
+            # Check regime change to choppy for trend setups
+            regime = market_data.get('regime', 'normal_range')
+            setup_type = self.position.get('setup_type', 'momentum')
+            
+            if regime == 'volatile_choppy' and setup_type != 'mean_reversion':
+                return TradeAction(
+                    action='close',
+                    reason='regime_invalidation',
+                    data={'regime': regime, 'setup_type': setup_type}
+                )
+            
+            # Check ML confidence drop
+            ml_confidence = market_data.get('ml_confidence', 0.7)
+            if ml_confidence < 0.5:
+                return TradeAction(
+                    action='close',
+                    reason='ml_confidence_drop',
+                    data={'ml_confidence': ml_confidence}
+                )
+            
+            # Check BTC correlation spike
+            btc_correlation = market_data.get('btc_correlation', 0.7)
+            if abs(btc_correlation) > 0.85:
+                return TradeAction(
+                    action='close',
+                    reason='high_btc_correlation',
+                    data={'btc_correlation': btc_correlation}
+                )
+            
+            return TradeAction(action='hold', reason='setup_still_valid')
+            
+        except Exception as e:
+            self.logger.error(f"Error checking setup invalidation: {e}")
+            return TradeAction(action='hold', reason='invalidation_check_error')
+    
+    def _is_stop_loss_hit(self, current_price: float) -> bool:
+        """Check if stop loss has been hit"""
+        stop_loss = self.position['stop_loss']
+        direction = self.position['direction']
+        
+        if direction == 'long':
+            return current_price <= stop_loss
+        else:
+            return current_price >= stop_loss
+    
+    def get_trade_stats(self) -> Dict[str, Any]:
+        """Get current trade statistics"""
+        return {
+            'entry_time': self.entry_time,
+            'time_in_position_min': (time.time() - self.entry_time) / 60,
+            'max_profit': self.max_profit,
+            'max_adverse': self.max_adverse,
+            'max_profit_price': self.max_profit_price,
+            'tp_executed_count': len(self.tp_executed),
+            'trailing_active': self.trailing_active,
+            'break_even_set': self.break_even_set,
+            'profit_locked': self.profit_locked,
+            'current_stop': self.position['stop_loss'],
+            'remaining_size': self.position['size'],
+            'setup_type': self.position.get('setup_type', 'unknown')
+        }
         self.TIME_STOPS = self.config.get('time_stops', {
             'scalp': 30,
             'momentum': 60,

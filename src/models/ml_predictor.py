@@ -44,176 +44,194 @@ class ModelPrediction:
     confidence: float = 0.0
 
 class FeatureCalculator:
-    """Calculate ML features from market data"""
+    """Calculate ML features from market data as per algorithm specification"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
     def calculate(self, market_data: Dict) -> Dict[str, float]:
         """
-        Calculate all ML features as specified in algorithm
+        Calculate all ML features as specified in algorithm document
         
         Args:
-            market_data: Dictionary containing market indicators and data
+            market_data: Market data dictionary
             
         Returns:
             Dictionary of calculated features
         """
-        features = {}
-        
         try:
+            features = {}
+            
             # Price features
-            features.update(self._price_features(market_data))
+            close_prices = market_data.get('close', [])
+            if isinstance(close_prices, list) and len(close_prices) >= 60:
+                features['price_change_1m'] = self._safe_pct_change(close_prices, 1)
+                features['price_change_5m'] = self._safe_pct_change(close_prices, 5)
+                features['price_change_15m'] = self._safe_pct_change(close_prices, 15)
+                features['price_change_1h'] = self._safe_pct_change(close_prices, 60)
+            else:
+                # Fallback for single values
+                current_price = close_prices[-1] if close_prices else market_data.get('close', 0)
+                features['price_change_1m'] = 0.0
+                features['price_change_5m'] = 0.0
+                features['price_change_15m'] = 0.0
+                features['price_change_1h'] = 0.0
             
             # Technical indicators
-            features.update(self._technical_features(market_data))
+            features['rsi'] = market_data.get('rsi', 50.0)
+            features['adx'] = market_data.get('adx', 25.0)
+            features['atr_normalized'] = market_data.get('atr', 0) / max(market_data.get('close', 1), 1)
+            
+            # EMA distance
+            close = market_data.get('close', [])[-1] if isinstance(market_data.get('close', []), list) else market_data.get('close', 0)
+            ema21 = market_data.get('ema_21', close)
+            features['ema_distance'] = (close - ema21) / ema21 if ema21 > 0 else 0
             
             # Volume features
-            features.update(self._volume_features(market_data))
+            volume = market_data.get('volume', 0)
+            volume_ma = market_data.get('volume_ma', volume)
+            features['volume_ratio'] = volume / volume_ma if volume_ma > 0 else 1.0
+            features['zvol'] = market_data.get('zvol', 0.0)
             
             # Market structure
-            features.update(self._structure_features(market_data))
+            features['distance_to_resistance'] = market_data.get('nearest_resistance', close) - close
+            features['distance_to_support'] = close - market_data.get('nearest_support', close)
             
             # Order flow
-            features.update(self._order_flow_features(market_data))
+            cvd = market_data.get('cvd', 0)
+            volume_current = market_data.get('volume', 1)
+            features['cvd_normalized'] = cvd / volume_current if volume_current > 0 else 0
+            features['order_imbalance'] = market_data.get('order_imbalance', 1.0)
+            features['trade_intensity'] = market_data.get('trade_intensity', 0.0)
             
             # Cross-market
-            features.update(self._cross_market_features(market_data))
+            features['btc_correlation'] = market_data.get('btc_correlation', 0.7)
+            features['btc_trend'] = market_data.get('btc_trend', 0)
+            
+            # Additional features for robustness
+            features['volatility_regime'] = self._classify_volatility_regime(market_data)
+            features['momentum_score'] = self._calculate_momentum_score(market_data)
+            features['mean_reversion_score'] = self._calculate_mean_reversion_score(market_data)
+            
+            return features
             
         except Exception as e:
             self.logger.error(f"Error calculating features: {e}")
-            
-        return features
+            return self._get_default_features()
     
-    def _price_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate price-based features"""
-        features = {}
-        
-        close_data = market_data.get('close', [])
-        if len(close_data) >= 60:
-            # Price changes over different periods
-            features['price_change_1m'] = self._safe_pct_change(close_data, 1)
-            features['price_change_5m'] = self._safe_pct_change(close_data, 5)
-            features['price_change_15m'] = self._safe_pct_change(close_data, 15)
-            features['price_change_1h'] = self._safe_pct_change(close_data, 60)
-        
-        return features
-    
-    def _technical_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate technical indicator features"""
-        features = {}
-        
-        close = market_data.get('close', 0)
-        if isinstance(close, list) and close:
-            close = close[-1]
-        
-        # RSI
-        features['rsi'] = market_data.get('rsi', 50)
-        
-        # ADX
-        features['adx'] = market_data.get('adx', 20)
-        
-        # ATR normalized by price
-        atr = market_data.get('atr', 0)
-        if close > 0:
-            features['atr_normalized'] = atr / close
-        else:
-            features['atr_normalized'] = 0
-        
-        # EMA distance
-        ema21 = market_data.get('ema_21', close)
-        if ema21 > 0:
-            features['ema_distance'] = (close - ema21) / ema21
-        else:
-            features['ema_distance'] = 0
-        
-        return features
-    
-    def _volume_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate volume features"""
-        features = {}
-        
-        # Volume ratio (current vs average)
-        volume = market_data.get('volume', 0)
-        volume_ma = market_data.get('volume_ma', volume)
-        if volume_ma > 0:
-            features['volume_ratio'] = volume / volume_ma
-        else:
-            features['volume_ratio'] = 1.0
-        
-        # Z-score volume
-        features['zvol'] = market_data.get('zvol', 0)
-        
-        return features
-    
-    def _structure_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate market structure features"""
-        features = {}
-        
-        close = market_data.get('close', 0)
-        if isinstance(close, list) and close:
-            close = close[-1]
-        
-        # Distance to nearest resistance/support
-        nearest_resistance = market_data.get('nearest_resistance', close * 1.02)
-        nearest_support = market_data.get('nearest_support', close * 0.98)
-        
-        if close > 0:
-            features['distance_to_resistance'] = (nearest_resistance - close) / close
-            features['distance_to_support'] = (close - nearest_support) / close
-        else:
-            features['distance_to_resistance'] = 0.02
-            features['distance_to_support'] = 0.02
-        
-        return features
-    
-    def _order_flow_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate order flow features"""
-        features = {}
-        
-        # CVD normalized by volume
-        cvd = market_data.get('cvd', 0)
-        volume = market_data.get('volume', 1)
-        features['cvd_normalized'] = cvd / volume if volume > 0 else 0
-        
-        # Order imbalance
-        features['order_imbalance'] = market_data.get('order_imbalance', 1.0)
-        
-        # Trade intensity
-        features['trade_intensity'] = market_data.get('trade_intensity', 0)
-        
-        return features
-    
-    def _cross_market_features(self, market_data: Dict) -> Dict[str, float]:
-        """Calculate cross-market features"""
-        features = {}
-        
-        # BTC correlation
-        features['btc_correlation'] = market_data.get('btc_correlation', 0.7)
-        
-        # BTC trend (simplified)
-        btc_trend = market_data.get('btc_trend', 0)
-        features['btc_trend'] = btc_trend
-        
-        return features
-    
-    def _safe_pct_change(self, data: List[float], periods: int) -> float:
+    def _safe_pct_change(self, prices: List[float], periods: int) -> float:
         """Safely calculate percentage change"""
-        if len(data) <= periods:
+        try:
+            if len(prices) < periods + 1:
+                return 0.0
+            
+            current = prices[-1]
+            previous = prices[-(periods + 1)]
+            
+            return (current - previous) / previous if previous != 0 else 0.0
+            
+        except Exception:
             return 0.0
-        
-        current = data[-1]
-        previous = data[-periods-1]
-        
-        if previous == 0:
+    
+    def _classify_volatility_regime(self, market_data: Dict) -> float:
+        """Classify volatility regime (0.0 = low, 1.0 = high)"""
+        try:
+            atr = market_data.get('atr', 0)
+            atr_avg = market_data.get('atr_20d_avg', atr)
+            
+            if atr_avg > 0:
+                ratio = atr / atr_avg
+                return min(1.0, max(0.0, (ratio - 0.5) / 1.5))  # Normalize to 0-1
+            
+            return 0.5
+            
+        except Exception:
+            return 0.5
+    
+    def _calculate_momentum_score(self, market_data: Dict) -> float:
+        """Calculate momentum score (-1.0 to 1.0)"""
+        try:
+            # Combine multiple momentum indicators
+            rsi = market_data.get('rsi', 50)
+            adx = market_data.get('adx', 20)
+            ema_distance = market_data.get('ema_distance', 0)
+            
+            # RSI component (-1 to 1)
+            rsi_score = (rsi - 50) / 50
+            
+            # ADX component (0 to 1)
+            adx_score = min(1.0, adx / 50)
+            
+            # EMA distance component
+            ema_score = max(-1.0, min(1.0, ema_distance * 10))
+            
+            # Weighted combination
+            momentum_score = (rsi_score * 0.4 + ema_score * 0.6) * adx_score
+            
+            return max(-1.0, min(1.0, momentum_score))
+            
+        except Exception:
             return 0.0
-        
-        return (current - previous) / previous
+    
+    def _calculate_mean_reversion_score(self, market_data: Dict) -> float:
+        """Calculate mean reversion score (0.0 to 1.0)"""
+        try:
+            # Distance from VWAP
+            close = market_data.get('close', 0)
+            if isinstance(close, list):
+                close = close[-1] if close else 0
+            
+            vwap = market_data.get('vwap', close)
+            vwap_upper = market_data.get('vwap_upper_2sigma', close * 1.02)
+            vwap_lower = market_data.get('vwap_lower_2sigma', close * 0.98)
+            
+            if close > vwap_upper:
+                # Price above upper band - mean reversion opportunity (short)
+                return (close - vwap_upper) / (vwap_upper - vwap) if vwap_upper > vwap else 0
+            elif close < vwap_lower:
+                # Price below lower band - mean reversion opportunity (long)
+                return (vwap_lower - close) / (vwap - vwap_lower) if vwap > vwap_lower else 0
+            else:
+                return 0.0
+                
+        except Exception:
+            return 0.0
+    
+    def _get_default_features(self) -> Dict[str, float]:
+        """Get default features when calculation fails"""
+        return {
+            'price_change_1m': 0.0,
+            'price_change_5m': 0.0,
+            'price_change_15m': 0.0,
+            'price_change_1h': 0.0,
+            'rsi': 50.0,
+            'adx': 25.0,
+            'atr_normalized': 0.015,
+            'ema_distance': 0.0,
+            'volume_ratio': 1.0,
+            'zvol': 0.0,
+            'distance_to_resistance': 10.0,
+            'distance_to_support': 10.0,
+            'cvd_normalized': 0.0,
+            'order_imbalance': 1.0,
+            'trade_intensity': 0.0,
+            'btc_correlation': 0.7,
+            'btc_trend': 0.0,
+            'volatility_regime': 0.5,
+            'momentum_score': 0.0,
+            'mean_reversion_score': 0.0
+        }
+
 
 class MLPredictor:
     """
-    ML Prediction system with ensemble voting
-    Implements algorithm specification exactly
+    ML Predictor with ensemble voting as per algorithm specification
+    
+    Implements:
+    - Multiple model ensemble with voting
+    - Regime-adaptive thresholds
+    - Optimal stop loss prediction
+    - Agreement and confidence metrics
     """
     
     def __init__(self, models_path: str, config: Dict = None):
@@ -224,87 +242,193 @@ class MLPredictor:
         self.logger = logging.getLogger(__name__)
         
         # Algorithm constants from specification
-        self.ENTRY_FILTERS = {
-            'default': {
-                'ml_margin_min': 0.15,
-                'ml_conf_min': 0.70,
-                'ml_agreement_min': 0.60
-            },
-            'trending': {
-                'ml_margin_min': 0.12,
-                'ml_conf_min': 0.65,
-                'ml_agreement_min': 0.55
-            },
-            'ranging': {
-                'ml_margin_min': 0.18,
-                'ml_conf_min': 0.75,
-                'ml_agreement_min': 0.65
-            },
-            'high_volatility': {
-                'ml_margin_min': 0.20,
-                'ml_conf_min': 0.75,
-                'ml_agreement_min': 0.70
-            }
-        }
+        from ..utils.algorithm_constants import ENTRY_FILTERS
+        self.ENTRY_FILTERS = ENTRY_FILTERS
         
+        # Model weights for ensemble (can be trained/optimized)
+        self.ensemble_weights = self.config.get('ensemble_weights', {
+            'xgboost': 0.3,
+            'lightgbm': 0.3,
+            'random_forest': 0.2,
+            'neural_network': 0.2
+        })
+        
+        # Load models if available
+        self.models_loaded = False
         self._load_models()
     
-    def _load_models(self):
-        """Load trained ML models"""
+    def _load_models(self) -> bool:
+        """Load trained models from disk"""
         try:
-            # For now, create mock models since actual trained models aren't available
-            # In production, this would load actual trained models
-            self.models = {
-                'xgboost_main': self._create_mock_model('xgboost'),
-                'lightgbm_main': self._create_mock_model('lightgbm'),
-                'neural_net': self._create_mock_model('neural_net'),
-                'ensemble_meta': self._create_mock_model('ensemble')
+            model_files = {
+                'xgboost': 'xgb_model.pkl',
+                'lightgbm': 'lgb_model.pkl',
+                'random_forest': 'rf_model.pkl',
+                'neural_network': 'nn_model.pkl'
             }
-            self.logger.info(f"Loaded {len(self.models)} ML models")
+            
+            loaded_count = 0
+            for model_name, filename in model_files.items():
+                model_path = self.models_path / filename
+                if model_path.exists():
+                    try:
+                        self.models[model_name] = joblib.load(model_path)
+                        loaded_count += 1
+                        self.logger.info(f"Loaded {model_name} from {model_path}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to load {model_name}: {e}")
+            
+            self.models_loaded = loaded_count > 0
+            
+            if not self.models_loaded:
+                self.logger.warning("No ML models loaded - using dummy predictions")
+                self._create_dummy_models()
+            
+            return self.models_loaded
             
         except Exception as e:
             self.logger.error(f"Error loading models: {e}")
-            self.models = {}
+            self._create_dummy_models()
+            return False
     
-    def _create_mock_model(self, model_type: str) -> Dict:
-        """Create mock model for testing (replace with actual model loading)"""
-        return {
-            'type': model_type,
-            'version': '1.0.0',
-            'trained_date': datetime.now().isoformat(),
-            'features': ['rsi', 'adx', 'volume_ratio', 'ema_distance'],
-            'mock': True
+    def _create_dummy_models(self):
+        """Create dummy models for testing when real models not available"""
+        self.models = {
+            'dummy_trend': self._create_dummy_trend_model(),
+            'dummy_mean_reversion': self._create_dummy_mean_reversion_model(),
+            'dummy_momentum': self._create_dummy_momentum_model()
         }
+        
+        self.ensemble_weights = {
+            'dummy_trend': 0.4,
+            'dummy_mean_reversion': 0.3,
+            'dummy_momentum': 0.3
+        }
+    
+    def _create_dummy_trend_model(self):
+        """Create dummy trend-following model"""
+        class DummyTrendModel:
+            def predict(self, features):
+                momentum = features.get('momentum_score', 0)
+                adx = features.get('adx', 25)
+                
+                if momentum > 0.2 and adx > 25:
+                    return {
+                        'up': 0.7, 'down': 0.2, 'flat': 0.1,
+                        'size': 'medium', 'time_to_target': 90,
+                        'optimal_sl': 1.2, 'confidence': 0.7
+                    }
+                elif momentum < -0.2 and adx > 25:
+                    return {
+                        'up': 0.2, 'down': 0.7, 'flat': 0.1,
+                        'size': 'medium', 'time_to_target': 90,
+                        'optimal_sl': 1.2, 'confidence': 0.7
+                    }
+                else:
+                    return {
+                        'up': 0.35, 'down': 0.35, 'flat': 0.3,
+                        'size': 'small', 'time_to_target': 60,
+                        'optimal_sl': 1.0, 'confidence': 0.5
+                    }
+        
+        return DummyTrendModel()
+    
+    def _create_dummy_mean_reversion_model(self):
+        """Create dummy mean reversion model"""
+        class DummyMeanReversionModel:
+            def predict(self, features):
+                mean_rev_score = features.get('mean_reversion_score', 0)
+                rsi = features.get('rsi', 50)
+                
+                if mean_rev_score > 0.5 and rsi > 70:
+                    return {
+                        'up': 0.2, 'down': 0.7, 'flat': 0.1,
+                        'size': 'small', 'time_to_target': 45,
+                        'optimal_sl': 0.8, 'confidence': 0.65
+                    }
+                elif mean_rev_score > 0.5 and rsi < 30:
+                    return {
+                        'up': 0.7, 'down': 0.2, 'flat': 0.1,
+                        'size': 'small', 'time_to_target': 45,
+                        'optimal_sl': 0.8, 'confidence': 0.65
+                    }
+                else:
+                    return {
+                        'up': 0.4, 'down': 0.4, 'flat': 0.2,
+                        'size': 'small', 'time_to_target': 30,
+                        'optimal_sl': 1.0, 'confidence': 0.4
+                    }
+        
+        return DummyMeanReversionModel()
+    
+    def _create_dummy_momentum_model(self):
+        """Create dummy momentum model"""
+        class DummyMomentumModel:
+            def predict(self, features):
+                volume_ratio = features.get('volume_ratio', 1)
+                zvol = features.get('zvol', 0)
+                price_change_5m = features.get('price_change_5m', 0)
+                
+                if volume_ratio > 2 and zvol > 2 and abs(price_change_5m) > 0.01:
+                    direction = 'up' if price_change_5m > 0 else 'down'
+                    if direction == 'up':
+                        return {
+                            'up': 0.8, 'down': 0.1, 'flat': 0.1,
+                            'size': 'large', 'time_to_target': 30,
+                            'optimal_sl': 1.0, 'confidence': 0.8
+                        }
+                    else:
+                        return {
+                            'up': 0.1, 'down': 0.8, 'flat': 0.1,
+                            'size': 'large', 'time_to_target': 30,
+                            'optimal_sl': 1.0, 'confidence': 0.8
+                        }
+                else:
+                    return {
+                        'up': 0.35, 'down': 0.35, 'flat': 0.3,
+                        'size': 'medium', 'time_to_target': 60,
+                        'optimal_sl': 1.0, 'confidence': 0.5
+                    }
+        
+        return DummyMomentumModel()
     
     def predict(self, market_data: Dict, regime: str) -> MLPrediction:
         """
-        Generate ML predictions with ensemble voting
+        Generate ML predictions with ensemble voting as per algorithm specification
         
         Args:
-            market_data: Current market state and indicators
+            market_data: Market data for feature calculation
             regime: Current market regime
             
         Returns:
-            MLPrediction with ensemble results and thresholds
+            MLPrediction with ensemble results and regime adjustments
         """
         try:
             # Calculate features
             features = self.feature_calculator.calculate(market_data)
             
-            if not features:
-                return self._default_prediction(regime)
-            
             # Get predictions from each model
             predictions = []
             for model_name, model in self.models.items():
-                pred = self._predict_single_model(model, features, model_name)
-                if pred:
-                    predictions.append(pred)
+                try:
+                    pred_dict = model.predict(features)
+                    pred = ModelPrediction(
+                        up=pred_dict.get('up', 0.33),
+                        down=pred_dict.get('down', 0.33),
+                        flat=pred_dict.get('flat', 0.34),
+                        size=pred_dict.get('size', 'medium'),
+                        time_to_target=pred_dict.get('time_to_target', 60),
+                        optimal_sl=pred_dict.get('optimal_sl', 1.0),
+                        confidence=pred_dict.get('confidence', 0.5)
+                    )
+                    predictions.append((model_name, pred))
+                except Exception as e:
+                    self.logger.warning(f"Model {model_name} prediction failed: {e}")
             
             if not predictions:
-                return self._default_prediction(regime)
+                return self._get_default_prediction(regime)
             
-            # Ensemble voting
+            # Ensemble voting with weights
             ensemble_result = self._ensemble_vote(predictions)
             
             # Adjust thresholds based on regime
@@ -314,194 +438,192 @@ class MLPredictor:
             
         except Exception as e:
             self.logger.error(f"Error in ML prediction: {e}")
-            return self._default_prediction(regime)
+            return self._get_default_prediction(regime)
     
-    def _predict_single_model(self, model: Dict, features: Dict, model_name: str) -> Optional[ModelPrediction]:
-        """Get prediction from a single model"""
+    def _ensemble_vote(self, predictions: List[Tuple[str, ModelPrediction]]) -> MLPrediction:
+        """
+        Combine predictions from multiple models using weighted voting
+        
+        Args:
+            predictions: List of (model_name, prediction) tuples
+            
+        Returns:
+            Ensemble MLPrediction
+        """
         try:
-            # Mock prediction logic - replace with actual model inference
-            if model.get('mock', False):
-                return self._mock_prediction(features, model_name)
+            if not predictions:
+                return self._get_default_prediction()
             
-            # In production, this would be:
-            # model_object = model['object']
-            # feature_vector = self._features_to_vector(features, model['features'])
-            # probabilities = model_object.predict_proba(feature_vector)
-            # return self._parse_model_output(probabilities, model_name)
+            # Weighted average of probabilities
+            total_weight = 0
+            weighted_up = 0
+            weighted_down = 0
+            weighted_flat = 0
             
-            return None
+            size_votes = []
+            time_predictions = []
+            sl_predictions = []
+            confidence_scores = []
+            
+            for model_name, pred in predictions:
+                weight = self.ensemble_weights.get(model_name, 1.0 / len(predictions))
+                total_weight += weight
+                
+                weighted_up += pred.up * weight
+                weighted_down += pred.down * weight
+                weighted_flat += pred.flat * weight
+                
+                size_votes.append(pred.size)
+                time_predictions.append(pred.time_to_target)
+                sl_predictions.append(pred.optimal_sl)
+                confidence_scores.append(pred.confidence)
+            
+            # Normalize probabilities
+            if total_weight > 0:
+                p_up = weighted_up / total_weight
+                p_down = weighted_down / total_weight
+                p_flat = weighted_flat / total_weight
+            else:
+                p_up = p_down = p_flat = 1.0 / 3
+            
+            # Determine direction
+            direction = self._get_direction_from_probabilities(p_up, p_down, p_flat)
+            
+            # Calculate agreement (how many models agree on direction)
+            directions = [self._get_direction_from_probabilities(p.up, p.down, p.flat) for _, p in predictions]
+            most_common_direction = max(set(directions), key=directions.count)
+            agreement = directions.count(most_common_direction) / len(directions)
+            
+            # Calculate confidence and margin
+            confidence = max(p_up, p_down, p_flat)
+            margin = abs(p_up - p_down)
+            
+            # Aggregate other predictions
+            expected_move_size = max(set(size_votes), key=size_votes.count) if size_votes else 'medium'
+            expected_time = np.median(time_predictions) if time_predictions else 60.0
+            optimal_sl_multiplier = np.mean(sl_predictions) if sl_predictions else 1.0
+            
+            return MLPrediction(
+                p_up=p_up,
+                p_down=p_down,
+                p_flat=p_flat,
+                direction=direction,
+                confidence=confidence,
+                agreement=agreement,
+                margin=margin,
+                expected_move_size=expected_move_size,
+                expected_time=expected_time,
+                optimal_sl_multiplier=optimal_sl_multiplier,
+                passes_ml=False,  # Will be set in adjust_for_regime
+                confidence_required=0.0,
+                margin_required=0.0,
+                agreement_required=0.0
+            )
             
         except Exception as e:
-            self.logger.error(f"Error predicting with model {model_name}: {e}")
-            return None
-    
-    def _mock_prediction(self, features: Dict, model_name: str) -> ModelPrediction:
-        """Generate mock prediction for testing"""
-        # Create realistic-looking predictions based on features
-        rsi = features.get('rsi', 50)
-        adx = features.get('adx', 20)
-        volume_ratio = features.get('volume_ratio', 1.0)
-        ema_distance = features.get('ema_distance', 0)
-        
-        # Simple logic for mock predictions
-        if rsi > 60 and adx > 25 and ema_distance > 0:
-            # Bullish bias
-            up_prob = min(0.8, 0.5 + (rsi - 50) / 100 + adx / 100)
-            down_prob = max(0.1, 0.4 - (rsi - 50) / 100)
-        elif rsi < 40 and adx > 25 and ema_distance < 0:
-            # Bearish bias
-            up_prob = max(0.1, 0.4 + (rsi - 50) / 100)
-            down_prob = min(0.8, 0.5 - (rsi - 50) / 100 + adx / 100)
-        else:
-            # Neutral
-            up_prob = 0.4 + np.random.normal(0, 0.1)
-            down_prob = 0.4 + np.random.normal(0, 0.1)
-        
-        flat_prob = max(0.1, 1.0 - up_prob - down_prob)
-        
-        # Normalize probabilities
-        total = up_prob + down_prob + flat_prob
-        up_prob /= total
-        down_prob /= total
-        flat_prob /= total
-        
-        # Expected move size based on volatility
-        atr_norm = features.get('atr_normalized', 0.02)
-        if atr_norm > 0.03:
-            size = 'large'
-            time_to_target = 30
-        elif atr_norm > 0.02:
-            size = 'medium'
-            time_to_target = 60
-        else:
-            size = 'small'
-            time_to_target = 120
-        
-        # Optimal stop loss based on volatility and ADX
-        optimal_sl = max(0.8, min(2.0, 1.0 + atr_norm * 10 + (25 - adx) / 50))
-        
-        return ModelPrediction(
-            up=up_prob,
-            down=down_prob,
-            flat=flat_prob,
-            size=size,
-            time_to_target=time_to_target,
-            optimal_sl=optimal_sl,
-            confidence=max(up_prob, down_prob, flat_prob)
-        )
-    
-    def _ensemble_vote(self, predictions: List[ModelPrediction]) -> MLPrediction:
-        """Combine predictions from multiple models using ensemble voting"""
-        
-        # Average probabilities
-        p_up = np.mean([p.up for p in predictions])
-        p_down = np.mean([p.down for p in predictions])
-        p_flat = np.mean([p.flat for p in predictions])
-        
-        # Calculate agreement (how many models agree on direction)
-        directions = [self._get_direction(p) for p in predictions]
-        most_common = max(set(directions), key=directions.count)
-        agreement = directions.count(most_common) / len(directions)
-        
-        # Calculate confidence and margin
-        confidence = max(p_up, p_down, p_flat)
-        margin = abs(p_up - p_down)
-        
-        # Aggregate other predictions
-        size_predictions = [p.size for p in predictions]
-        time_predictions = [p.time_to_target for p in predictions]
-        sl_predictions = [p.optimal_sl for p in predictions]
-        
-        expected_move_size = max(set(size_predictions), key=size_predictions.count)
-        expected_time = np.median(time_predictions)
-        optimal_sl_multiplier = np.mean(sl_predictions)
-        
-        return MLPrediction(
-            p_up=p_up,
-            p_down=p_down,
-            p_flat=p_flat,
-            direction=most_common,
-            confidence=confidence,
-            agreement=agreement,
-            margin=margin,
-            expected_move_size=expected_move_size,
-            expected_time=expected_time,
-            optimal_sl_multiplier=optimal_sl_multiplier,
-            passes_ml=False,  # Will be set in adjust_for_regime
-            confidence_required=0.7,  # Will be set in adjust_for_regime
-            margin_required=0.15,  # Will be set in adjust_for_regime
-            agreement_required=0.6  # Will be set in adjust_for_regime
-        )
+            self.logger.error(f"Error in ensemble voting: {e}")
+            return self._get_default_prediction()
     
     def _adjust_for_regime(self, prediction: MLPrediction, regime: str) -> MLPrediction:
-        """Adjust ML thresholds based on market regime"""
+        """
+        Adjust ML thresholds based on market regime as per algorithm specification
         
-        # Get regime-specific adjustments from algorithm specification
-        regime_adjustments = {
-            'strong_trend': {
-                'confidence_mult': 0.9,
-                'margin_mult': 0.8,
-                'agreement_mult': 0.9
-            },
-            'trending': {
-                'confidence_mult': 0.95,
-                'margin_mult': 0.9,
-                'agreement_mult': 0.95
-            },
-            'normal_range': {
-                'confidence_mult': 1.0,
-                'margin_mult': 1.0,
-                'agreement_mult': 1.0
-            },
-            'low_volatility_range': {
-                'confidence_mult': 1.1,
-                'margin_mult': 1.2,
-                'agreement_mult': 1.1
-            },
-            'volatile_choppy': {
-                'confidence_mult': 1.2,
-                'margin_mult': 1.3,
-                'agreement_mult': 1.2
+        Args:
+            prediction: Base prediction from ensemble
+            regime: Current market regime
+            
+        Returns:
+            Adjusted prediction with regime-specific thresholds
+        """
+        try:
+            # Regime adjustment multipliers from algorithm
+            regime_adjustments = {
+                'strong_trend': {
+                    'confidence_mult': 0.9,
+                    'margin_mult': 0.8,
+                    'agreement_mult': 0.9
+                },
+                'trending': {
+                    'confidence_mult': 0.95,
+                    'margin_mult': 0.9,
+                    'agreement_mult': 0.95
+                },
+                'normal_range': {
+                    'confidence_mult': 1.0,
+                    'margin_mult': 1.0,
+                    'agreement_mult': 1.0
+                },
+                'low_volatility_range': {
+                    'confidence_mult': 1.1,
+                    'margin_mult': 1.2,
+                    'agreement_mult': 1.1
+                },
+                'volatile_choppy': {
+                    'confidence_mult': 1.2,
+                    'margin_mult': 1.3,
+                    'agreement_mult': 1.2
+                }
             }
-        }
-        
-        adj = regime_adjustments.get(regime, regime_adjustments['normal_range'])
-        
-        # Get base thresholds
-        base_filters = self.ENTRY_FILTERS.get('default')
-        
-        # Apply regime adjustments
-        prediction.confidence_required = base_filters['ml_conf_min'] * adj['confidence_mult']
-        prediction.margin_required = base_filters['ml_margin_min'] * adj['margin_mult']
-        prediction.agreement_required = base_filters['ml_agreement_min'] * adj['agreement_mult']
-        
-        # Check if ML filters pass
-        prediction.passes_ml = (
-            prediction.confidence >= prediction.confidence_required and
-            prediction.margin >= prediction.margin_required and
-            prediction.agreement >= prediction.agreement_required
-        )
-        
-        return prediction
+            
+            adj = regime_adjustments.get(regime, regime_adjustments['normal_range'])
+            
+            # Get base thresholds from algorithm constants
+            base_filters = self.ENTRY_FILTERS['default']
+            
+            # Calculate adjusted thresholds
+            confidence_required = base_filters['ml_conf_min'] * adj['confidence_mult']
+            margin_required = base_filters['ml_margin_min'] * adj['margin_mult']
+            agreement_required = base_filters['ml_agreement_min'] * adj['agreement_mult']
+            
+            # Check if prediction passes ML filters
+            passes_ml = (
+                prediction.confidence >= confidence_required and
+                prediction.margin >= margin_required and
+                prediction.agreement >= agreement_required
+            )
+            
+            # Create adjusted prediction
+            adjusted_prediction = MLPrediction(
+                p_up=prediction.p_up,
+                p_down=prediction.p_down,
+                p_flat=prediction.p_flat,
+                direction=prediction.direction,
+                confidence=prediction.confidence,
+                agreement=prediction.agreement,
+                margin=prediction.margin,
+                expected_move_size=prediction.expected_move_size,
+                expected_time=prediction.expected_time,
+                optimal_sl_multiplier=prediction.optimal_sl_multiplier,
+                passes_ml=passes_ml,
+                confidence_required=confidence_required,
+                margin_required=margin_required,
+                agreement_required=agreement_required
+            )
+            
+            return adjusted_prediction
+            
+        except Exception as e:
+            self.logger.error(f"Error adjusting for regime: {e}")
+            return prediction
     
-    def _get_direction(self, prediction: ModelPrediction) -> str:
-        """Get direction from model prediction"""
-        if prediction.up > prediction.down and prediction.up > prediction.flat:
+    def _get_direction_from_probabilities(self, p_up: float, p_down: float, p_flat: float) -> str:
+        """Get direction from probabilities"""
+        if p_up > p_down and p_up > p_flat:
             return 'long'
-        elif prediction.down > prediction.up and prediction.down > prediction.flat:
+        elif p_down > p_up and p_down > p_flat:
             return 'short'
         else:
             return 'flat'
     
-    def _default_prediction(self, regime: str) -> MLPrediction:
-        """Return default prediction when models unavailable"""
-        default = MLPrediction(
+    def _get_default_prediction(self, regime: str = 'normal_range') -> MLPrediction:
+        """Get default prediction when models fail"""
+        return MLPrediction(
             p_up=0.33,
             p_down=0.33,
             p_flat=0.34,
             direction='flat',
-            confidence=0.34,
-            agreement=0.33,
+            confidence=0.4,
+            agreement=0.5,
             margin=0.0,
             expected_move_size='medium',
             expected_time=60.0,
@@ -511,29 +633,26 @@ class MLPredictor:
             margin_required=0.15,
             agreement_required=0.6
         )
-        
-        return self._adjust_for_regime(default, regime)
     
-    def retrain_models(self, training_data: pd.DataFrame) -> bool:
-        """Retrain models with new data (placeholder for future implementation)"""
-        try:
-            self.logger.info("Model retraining not implemented yet")
-            return False
-            
-        except Exception as e:
-            self.logger.error(f"Error retraining models: {e}")
-            return False
+    def get_model_status(self) -> Dict[str, Any]:
+        """Get current model status"""
+        return {
+            'models_loaded': list(self.models.keys()),
+            'models_count': len(self.models),
+            'ensemble_weights': self.ensemble_weights,
+            'feature_calculator_ready': self.feature_calculator is not None,
+            'models_path': str(self.models_path),
+            'has_real_models': self.models_loaded
+        }
     
-    def get_model_performance(self) -> Dict[str, Any]:
-        """Get performance metrics for loaded models"""
-        performance = {}
+    def retrain_models(self, training_data: pd.DataFrame, target_column: str = 'target'):
+        """
+        Retrain models with new data (placeholder for future implementation)
         
-        for model_name, model in self.models.items():
-            performance[model_name] = {
-                'type': model.get('type', 'unknown'),
-                'version': model.get('version', '0.0.0'),
-                'mock': model.get('mock', False),
-                'status': 'loaded' if model else 'failed'
-            }
-        
-        return performance
+        Args:
+            training_data: Training dataset
+            target_column: Target column name
+        """
+        self.logger.info("Model retraining not implemented yet")
+        # TODO: Implement model retraining pipeline
+        pass

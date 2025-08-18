@@ -99,6 +99,443 @@ class OrderFlowAnalyzer:
         # Order book analysis
         imbalance = self._calculate_imbalance(orderbook)
         
+        # Large order detection
+        large_orders = self._detect_large_orders(trades)
+        
+        # Absorption detection
+        absorption = self._detect_absorption(trades, orderbook)
+        
+        # Trade intensity analysis
+        intensity = self._calculate_trade_intensity(trades)
+        
+        # Aggressive activity analysis
+        aggressive_buyers, aggressive_sellers = self._analyze_aggressive_activity(trades)
+        
+        # Footprint analysis (time & sales with volume at each price)
+        footprint_data = self._create_footprint(trades)
+        
+        # Volume cluster analysis
+        volume_clusters = self._identify_volume_clusters(trades)
+        
+        return OrderFlowSignals(
+            delta=delta,
+            cvd=self.cvd,
+            cvd_trend=cvd_trend,
+            imbalance=imbalance,
+            large_orders=large_orders,
+            absorption=absorption,
+            intensity=intensity,
+            aggressive_buyers=aggressive_buyers,
+            aggressive_sellers=aggressive_sellers,
+            footprint_data=footprint_data,
+            volume_clusters=volume_clusters
+        )
+    
+    def _parse_trades(self, trades_data: List[Dict]) -> List[Trade]:
+        """Parse raw trade data into Trade objects"""
+        trades = []
+        for trade_dict in trades_data:
+            try:
+                trade = Trade(
+                    timestamp=trade_dict.get('timestamp', time.time()),
+                    price=float(trade_dict.get('price', 0)),
+                    size=float(trade_dict.get('size', 0)),
+                    side=trade_dict.get('side', 'buy'),
+                    is_aggressive=trade_dict.get('is_aggressive', True)
+                )
+                trades.append(trade)
+            except (ValueError, TypeError) as e:
+                continue
+        
+        return trades
+    
+    def _parse_orderbook(self, orderbook_data: Dict) -> OrderBook:
+        """Parse raw orderbook data into OrderBook object"""
+        try:
+            bids = []
+            asks = []
+            
+            for bid in orderbook_data.get('bids', []):
+                bids.append(OrderBookLevel(
+                    price=float(bid[0]),
+                    size=float(bid[1])
+                ))
+            
+            for ask in orderbook_data.get('asks', []):
+                asks.append(OrderBookLevel(
+                    price=float(ask[0]),
+                    size=float(ask[1])
+                ))
+            
+            # Calculate spread
+            spread = 0.0
+            if bids and asks:
+                spread = asks[0].price - bids[0].price
+            
+            return OrderBook(
+                timestamp=orderbook_data.get('timestamp', time.time()),
+                bids=bids,
+                asks=asks,
+                spread=spread
+            )
+            
+        except (ValueError, TypeError, IndexError):
+            return OrderBook(
+                timestamp=time.time(),
+                bids=[],
+                asks=[],
+                spread=0.0
+            )
+    
+    def _update_trade_history(self, trades: List[Trade]):
+        """Update internal trade history"""
+        for trade in trades:
+            self.trade_history.append(trade)
+    
+    def _update_orderbook_history(self, orderbook: OrderBook):
+        """Update internal orderbook history"""
+        self.orderbook_history.append(orderbook)
+    
+    def _calculate_delta(self, trades: List[Trade]) -> float:
+        """
+        Calculate volume delta (buy volume - sell volume)
+        
+        Args:
+            trades: List of trades to analyze
+            
+        Returns:
+            Volume delta
+        """
+        buy_volume = sum(t.size for t in trades if t.side == 'buy')
+        sell_volume = sum(t.size for t in trades if t.side == 'sell')
+        
+        delta = buy_volume - sell_volume
+        self.delta_history.append(delta)
+        
+        return delta
+    
+    def _update_cvd(self, delta: float) -> float:
+        """Update cumulative volume delta"""
+        self.cvd += delta
+        return self.cvd
+    
+    def _get_cvd_trend(self) -> str:
+        """
+        Determine CVD trend based on recent history
+        
+        Returns:
+            'bullish', 'bearish', or 'neutral'
+        """
+        if len(self.delta_history) < 10:
+            return 'neutral'
+        
+        recent_deltas = list(self.delta_history)[-10:]
+        positive_count = sum(1 for d in recent_deltas if d > 0)
+        
+        if positive_count >= 7:
+            return 'bullish'
+        elif positive_count <= 3:
+            return 'bearish'
+        else:
+            return 'neutral'
+    
+    def _calculate_imbalance(self, orderbook: OrderBook) -> float:
+        """
+        Calculate order book imbalance ratio
+        
+        Args:
+            orderbook: Current order book
+            
+        Returns:
+            Imbalance ratio (bid_volume / ask_volume)
+        """
+        if not orderbook.bids or not orderbook.asks:
+            return 1.0
+        
+        # Sum top 10 levels
+        bid_volume = sum(level.size for level in orderbook.bids[:10])
+        ask_volume = sum(level.size for level in orderbook.asks[:10])
+        
+        if ask_volume == 0:
+            return 10.0  # Heavy bid imbalance
+        
+        return bid_volume / ask_volume
+    
+    def _detect_large_orders(self, trades: List[Trade]) -> List[Dict]:
+        """
+        Detect unusually large orders based on z-score analysis
+        
+        Args:
+            trades: Recent trades
+            
+        Returns:
+            List of large order events
+        """
+        if len(self.trade_history) < 100:
+            return []
+        
+        # Calculate volume statistics from history
+        historical_sizes = [t.size for t in list(self.trade_history)[-500:]]
+        mean_size = np.mean(historical_sizes)
+        std_size = np.std(historical_sizes)
+        
+        if std_size == 0:
+            return []
+        
+        large_orders = []
+        for trade in trades:
+            z_score = (trade.size - mean_size) / std_size
+            
+            if z_score >= self.large_order_z_threshold:
+                large_orders.append({
+                    'timestamp': trade.timestamp,
+                    'price': trade.price,
+                    'size': trade.size,
+                    'side': trade.side,
+                    'z_score': z_score,
+                    'is_aggressive': trade.is_aggressive
+                })
+        
+        return large_orders
+    
+    def _detect_absorption(self, trades: List[Trade], orderbook: OrderBook) -> Optional[str]:
+        """
+        Detect order absorption patterns as per algorithm specification
+        
+        Args:
+            trades: Recent trades
+            orderbook: Current order book
+            
+        Returns:
+            'bullish_absorption', 'bearish_absorption', or None
+        """
+        if len(trades) < 5 or not orderbook.bids or not orderbook.asks:
+            return None
+        
+        # Group trades by price levels
+        price_volumes = {}
+        for trade in trades:
+            price_level = round(trade.price, 2)  # Round to nearest cent
+            if price_level not in price_volumes:
+                price_volumes[price_level] = {'buy': 0, 'sell': 0}
+            
+            price_volumes[price_level][trade.side] += trade.size
+        
+        # Check for absorption patterns
+        for price, volumes in price_volumes.items():
+            total_volume = volumes['buy'] + volumes['sell']
+            
+            # Find corresponding orderbook level
+            bid_size = 0
+            ask_size = 0
+            
+            for bid in orderbook.bids:
+                if abs(bid.price - price) <= self.absorption_price_tolerance:
+                    bid_size = bid.size
+                    break
+            
+            for ask in orderbook.asks:
+                if abs(ask.price - price) <= self.absorption_price_tolerance:
+                    ask_size = ask.size
+                    break
+            
+            # Check for bullish absorption (heavy selling absorbed at support)
+            if (volumes['sell'] > volumes['buy'] * 2 and  # Heavy selling
+                bid_size > 0 and  # Still bid support
+                total_volume > self._get_average_volume() * self.absorption_volume_ratio):
+                return 'bullish_absorption'
+            
+            # Check for bearish absorption (heavy buying absorbed at resistance)
+            if (volumes['buy'] > volumes['sell'] * 2 and  # Heavy buying
+                ask_size > 0 and  # Still ask resistance
+                total_volume > self._get_average_volume() * self.absorption_volume_ratio):
+                return 'bearish_absorption'
+        
+        return None
+    
+    def _calculate_trade_intensity(self, trades: List[Trade]) -> float:
+        """
+        Calculate trade intensity as per algorithm specification
+        
+        Args:
+            trades: Recent trades
+            
+        Returns:
+            Trade intensity multiplier (1.0 = normal, >1.0 = high intensity)
+        """
+        if not trades:
+            return 1.0
+        
+        # Calculate current period metrics
+        current_volume = sum(t.size for t in trades)
+        current_count = len(trades)
+        
+        # Get historical averages
+        if len(self.trade_history) < 100:
+            return 1.0
+        
+        # Group historical trades by time windows
+        historical_windows = self._group_trades_by_windows(list(self.trade_history), window_size=60)
+        
+        if not historical_windows:
+            return 1.0
+        
+        avg_volume = np.mean([w['volume'] for w in historical_windows])
+        avg_count = np.mean([w['count'] for w in historical_windows])
+        
+        # Calculate intensity scores
+        volume_intensity = current_volume / avg_volume if avg_volume > 0 else 1.0
+        count_intensity = current_count / avg_count if avg_count > 0 else 1.0
+        
+        # Weighted combination
+        intensity = (volume_intensity * 0.7) + (count_intensity * 0.3)
+        
+        return intensity
+    
+    def _analyze_aggressive_activity(self, trades: List[Trade]) -> Tuple[int, int]:
+        """
+        Analyze aggressive buying vs selling activity
+        
+        Args:
+            trades: Recent trades
+            
+        Returns:
+            Tuple of (aggressive_buyers, aggressive_sellers)
+        """
+        aggressive_buyers = sum(1 for t in trades if t.side == 'buy' and t.is_aggressive)
+        aggressive_sellers = sum(1 for t in trades if t.side == 'sell' and t.is_aggressive)
+        
+        return aggressive_buyers, aggressive_sellers
+    
+    def _create_footprint(self, trades: List[Trade]) -> Dict:
+        """
+        Create footprint chart data (volume at each price level)
+        
+        Args:
+            trades: Recent trades
+            
+        Returns:
+            Footprint data dictionary
+        """
+        footprint = {}
+        
+        for trade in trades:
+            price_level = round(trade.price, 2)
+            if price_level not in footprint:
+                footprint[price_level] = {
+                    'buy_volume': 0,
+                    'sell_volume': 0,
+                    'buy_count': 0,
+                    'sell_count': 0
+                }
+            
+            if trade.side == 'buy':
+                footprint[price_level]['buy_volume'] += trade.size
+                footprint[price_level]['buy_count'] += 1
+            else:
+                footprint[price_level]['sell_volume'] += trade.size
+                footprint[price_level]['sell_count'] += 1
+        
+        return footprint
+    
+    def _identify_volume_clusters(self, trades: List[Trade]) -> List[Dict]:
+        """
+        Identify significant volume clusters
+        
+        Args:
+            trades: Recent trades
+            
+        Returns:
+            List of volume cluster data
+        """
+        if not trades:
+            return []
+        
+        footprint = self._create_footprint(trades)
+        clusters = []
+        
+        for price, data in footprint.items():
+            total_volume = data['buy_volume'] + data['sell_volume']
+            
+            # Only consider significant volume levels
+            if total_volume > self._get_average_volume() * 2:
+                imbalance = abs(data['buy_volume'] - data['sell_volume']) / total_volume
+                
+                clusters.append({
+                    'price': price,
+                    'total_volume': total_volume,
+                    'buy_volume': data['buy_volume'],
+                    'sell_volume': data['sell_volume'],
+                    'imbalance': imbalance,
+                    'dominant_side': 'buy' if data['buy_volume'] > data['sell_volume'] else 'sell'
+                })
+        
+        # Sort by volume descending
+        clusters.sort(key=lambda x: x['total_volume'], reverse=True)
+        
+        return clusters[:10]  # Return top 10 clusters
+    
+    def _get_average_volume(self) -> float:
+        """Get average trade volume from history"""
+        if len(self.trade_history) < 10:
+            return 1000.0  # Default fallback
+        
+        return np.mean([t.size for t in list(self.trade_history)[-100:]])
+    
+    def _group_trades_by_windows(self, trades: List[Trade], window_size: int = 60) -> List[Dict]:
+        """
+        Group trades into time windows for analysis
+        
+        Args:
+            trades: List of trades
+            window_size: Window size in seconds
+            
+        Returns:
+            List of window statistics
+        """
+        if not trades:
+            return []
+        
+        windows = []
+        current_window = {
+            'start_time': trades[0].timestamp,
+            'volume': 0,
+            'count': 0
+        }
+        
+        for trade in trades:
+            if trade.timestamp - current_window['start_time'] > window_size:
+                # Close current window and start new one
+                if current_window['count'] > 0:
+                    windows.append(current_window)
+                
+                current_window = {
+                    'start_time': trade.timestamp,
+                    'volume': 0,
+                    'count': 0
+                }
+            
+            current_window['volume'] += trade.size
+            current_window['count'] += 1
+        
+        # Add final window
+        if current_window['count'] > 0:
+            windows.append(current_window)
+        
+        return windows
+    
+    def get_signals_summary(self) -> Dict:
+        """Get summary of current order flow signals"""
+        return {
+            'cvd': self.cvd,
+            'cvd_trend': self._get_cvd_trend(),
+            'delta_ma_10': np.mean(list(self.delta_history)[-10:]) if len(self.delta_history) >= 10 else 0,
+            'trade_count': len(self.trade_history),
+            'orderbook_count': len(self.orderbook_history),
+            'recent_large_orders': len(self._detect_large_orders(list(self.trade_history)[-100:])),
+            'avg_trade_size': self._get_average_volume()
+        }
+        
         # Large orders detection
         large_orders = self._detect_large_orders(trades)
         
