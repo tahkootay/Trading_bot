@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 SOL/USDT Trading Bot - Панель Управления</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2><i class="fas fa-robot"></i> Trading Bot</h2>
+                <p>SOL/USDT ML System</p>
+            </div>
+            
+            <nav class="nav-menu">
+                <ul>
+                    <li><a href="#dashboard" class="nav-link active"><i class="fas fa-tachometer-alt"></i> Дашборд</a></li>
+                    <li><a href="#data-collection" class="nav-link"><i class="fas fa-download"></i> Сбор Данных</a></li>
+                    <li><a href="#data-manager" class="nav-link"><i class="fas fa-database"></i> Управление Данными</a></li>
+                    <li><a href="#training" class="nav-link"><i class="fas fa-brain"></i> Обучение ML</a></li>
+                    <li><a href="#backtesting" class="nav-link"><i class="fas fa-chart-line"></i> Бэктестирование</a></li>
+                    <li><a href="#trades" class="nav-link"><i class="fas fa-exchange-alt"></i> Анализ Сделок</a></li>
+                    <li><a href="#models" class="nav-link"><i class="fas fa-cogs"></i> Модели</a></li>
+                    <li><a href="#settings" class="nav-link"><i class="fas fa-sliders-h"></i> Настройки</a></li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span>Система онлайн</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="page-title">Дашборд</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="refreshBtn">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <div class="notification-bell">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Dashboard Panel -->
+                <section id="dashboard" class="panel active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-robot"></i></div>
+                            <div class="stat-info">
+                                <h3>Активные Модели</h3>
+                                <div class="stat-value" id="activeModels">2</div>
+                                <div class="stat-change positive">+1 за неделю</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="stat-info">
+                                <h3>Точность ML</h3>
+                                <div class="stat-value" id="mlAccuracy">98.90%</div>
+                                <div class="stat-change positive">+28.6%</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                            <div class="stat-info">
+                                <h3>Последний P&L</h3>
+                                <div class="stat-value profit" id="lastPnl">+$7.09</div>
+                                <div class="stat-change positive">41.7% Win Rate</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-info">
+                                <h3>Последнее Обучение</h3>
+                                <div class="stat-value" id="lastTraining">22.08.2025</div>
+                                <div class="stat-change neutral">17:54 MSK</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-brain"></i> Статус ML Моделей</h3>
+                            <div class="model-status">
+                                <div class="model-item">
+                                    <span class="model-name">CatBoost</span>
+                                    <span class="model-accuracy">98.90%</span>
+                                    <span class="status-badge online">Активна</span>
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name">Random Forest</span>
+                                    <span class="model-accuracy">98.90%</span>
+                                    <span class="status-badge online">Активна</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-database"></i> Доступные Данные</h3>
+                            <div class="data-overview" id="dataOverview">
+                                <div class="data-item">
+                                    <span>10-17 августа 2025</span>
+                                    <span class="data-size">11.5k свечей</span>
+                                </div>
+                                <div class="data-item">
+                                    <span>12 августа 2025</span>
+                                    <span class="data-size">1.4k свечей</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Data Collection Panel -->
+                <section id="data-collection" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-download"></i> Сбор Рыночных Данных</h2>
+                        <button class="btn btn-secondary" id="collectionHistoryBtn">
+                            <i class="fas fa-history"></i> История Сбора
+                        </button>
+                    </div>
+                    
+                    <div class="data-collection-container">
+                        <div class="collection-config">
+                            <h3>Настройки Сбора Данных</h3>
+                            <form id="dataCollectionForm">
+                                <div class="form-group">
+                                    <label for="symbol">Торговая Пара:</label>
+                                    <select id="symbol" name="symbol" required>
+                                        <option value="SOLUSDT" selected>SOL/USDT</option>
+                                        <option value="BTCUSDT">BTC/USDT</option>
+                                        <option value="ETHUSDT">ETH/USDT</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="startDate">Начальная Дата:</label>
+                                    <input type="datetime-local" id="startDate" name="start_date" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="endDate">Конечная Дата:</label>
+                                    <input type="datetime-local" id="endDate" name="end_date" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="timeframes">Таймфреймы:</label>
+                                    <div class="checkbox-group">
+                                        <label><input type="checkbox" name="timeframes" value="1m" checked> 1 минута</label>
+                                        <label><input type="checkbox" name="timeframes" value="5m" checked> 5 минут</label>
+                                        <label><input type="checkbox" name="timeframes" value="15m" checked> 15 минут</label>
+                                        <label><input type="checkbox" name="timeframes" value="1h" checked> 1 час</label>
+                                        <label><input type="checkbox" name="timeframes" value="4h"> 4 часа</label>
+                                        <label><input type="checkbox" name="timeframes" value="1d"> 1 день</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="datasetName">Имя Датасета (опционально):</label>
+                                    <input type="text" id="datasetName" name="dataset_name" placeholder="Например: volatile_period_20250822">
+                                    <small>Если не указано, будет создано автоматически</small>
+                                </div>
+                                
+                                <div class="quick-periods">
+                                    <h4>Быстрый Выбор Периода:</h4>
+                                    <div class="period-buttons">
+                                        <button type="button" class="btn btn-small btn-secondary" data-period="1">Последний День</button>
+                                        <button type="button" class="btn btn-small btn-secondary" data-period="7">Последняя Неделя</button>
+                                        <button type="button" class="btn btn-small btn-secondary" data-period="30">Последний Месяц</button>
+                                        <button type="button" class="btn btn-small btn-secondary" data-period="custom">Текущий Час</button>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-large" id="startCollectionBtn">
+                                    <i class="fas fa-play"></i> Начать Сбор Данных
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="collection-progress">
+                            <h3>Прогресс Сбора</h3>
+                            <div class="progress-container" id="collectionProgress" style="display: none;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="collectionProgressFill"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span id="collectionProgressText">Инициализация сбора...</span>
+                                    <span id="collectionProgressPercent">0%</span>
+                                </div>
+                                <div class="collection-stats" id="collectionStats" style="margin-top: 15px;">
+                                    <div class="stat-item">
+                                        <span class="label">Таймфрейм:</span>
+                                        <span class="value" id="currentTimeframe">-</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="label">Собрано свечей:</span>
+                                        <span class="value" id="candlesCollected">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="label">Время выполнения:</span>
+                                        <span class="value" id="collectionTime">00:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="collection-logs" id="collectionLogs">
+                                <div class="logs-placeholder">
+                                    <i class="fas fa-cloud-download-alt"></i>
+                                    <p>Логи сбора данных появятся здесь</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="collection-history" id="collectionHistory" style="display: none;">
+                        <h3>История Сбора Данных</h3>
+                        <div class="history-table-container">
+                            <table class="trades-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Символ</th>
+                                        <th>Период</th>
+                                        <th>Таймфреймы</th>
+                                        <th>Свечей</th>
+                                        <th>Размер</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <tr>
+                                        <td colspan="8" class="no-data">
+                                            <i class="fas fa-history"></i>
+                                            <p>История сбора данных пуста</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Data Manager Panel -->
+                <section id="data-manager" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-database"></i> Управление Данными</h2>
+                        <button class="btn btn-primary" id="refreshDataBtn">
+                            <i class="fas fa-sync-alt"></i> Обновить Список
+                        </button>
+                    </div>
+                    
+                    <div class="data-manager-grid">
+                        <div class="data-card">
+                            <h3>Доступные Датасеты</h3>
+                            <div class="dataset-list" id="datasetList">
+                                <div class="dataset-item" data-path="data/blocks/data/august_10_17_full">
+                                    <input type="radio" name="training-data" value="august_10_17_full" id="data1">
+                                    <label for="data1">
+                                        <div class="dataset-info">
+                                            <h4>10-17 августа 2025 (Полный)</h4>
+                                            <p>8 дней торговых данных | 11,520 1m свечей</p>
+                                            <span class="dataset-size">2.3MB</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="dataset-item" data-path="data/blocks/data/august_12_single_day">
+                                    <input type="radio" name="training-data" value="august_12_single_day" id="data2">
+                                    <label for="data2">
+                                        <div class="dataset-info">
+                                            <h4>12 августа 2025 (Один день)</h4>
+                                            <p>24 часа активной торговли | 1,440 1m свечей</p>
+                                            <span class="dataset-size">288KB</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="dataset-item" data-path="data/blocks/data/august_14_17_volatile">
+                                    <input type="radio" name="training-data" value="august_14_17_volatile" id="data3">
+                                    <label for="data3">
+                                        <div class="dataset-info">
+                                            <h4>14-17 августа 2025 (Волатильный)</h4>
+                                            <p>4 дня высокой волатильности | 5,760 1m свечей</p>
+                                            <span class="dataset-size">1.1MB</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-card">
+                            <h3>Предпросмотр Данных</h3>
+                            <div class="data-preview" id="dataPreview">
+                                <div class="preview-placeholder">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <p>Выберите датасет для предпросмотра</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Training Panel -->
+                <section id="training" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-brain"></i> Обучение ML Моделей</h2>
+                    </div>
+                    
+                    <div class="training-container">
+                        <div class="training-config">
+                            <h3>Конфигурация Обучения</h3>
+                            <form id="trainingForm">
+                                <div class="form-group">
+                                    <label for="selectedDataset">Выбранный Датасет:</label>
+                                    <select id="selectedDataset" name="dataset" required>
+                                        <option value="">Выберите датасет</option>
+                                        <option value="august_10_17_full">10-17 августа 2025 (Полный)</option>
+                                        <option value="august_12_single_day">12 августа 2025 (Один день)</option>
+                                        <option value="august_14_17_volatile">14-17 августа 2025 (Волатильный)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="modelTypes">Типы Моделей:</label>
+                                    <div class="checkbox-group">
+                                        <label><input type="checkbox" name="models" value="catboost" checked> CatBoost</label>
+                                        <label><input type="checkbox" name="models" value="random_forest" checked> Random Forest</label>
+                                        <label><input type="checkbox" name="models" value="lightgbm"> LightGBM</label>
+                                        <label><input type="checkbox" name="models" value="xgboost"> XGBoost</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="testSize">Размер Тестовой Выборки:</label>
+                                    <input type="range" id="testSize" name="test_size" min="0.1" max="0.4" step="0.05" value="0.2">
+                                    <span id="testSizeValue">20%</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="forwardPeriods">Период Прогноза (минуты):</label>
+                                    <input type="number" id="forwardPeriods" name="forward_periods" value="30" min="5" max="120">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    <i class="fas fa-play"></i> Запустить Обучение
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="training-progress">
+                            <h3>Прогресс Обучения</h3>
+                            <div class="progress-container" id="trainingProgress" style="display: none;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <div class="progress-info">
+                                    <span id="progressText">Подготовка данных...</span>
+                                    <span id="progressPercent">0%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="training-logs" id="trainingLogs">
+                                <div class="logs-placeholder">
+                                    <i class="fas fa-terminal"></i>
+                                    <p>Логи обучения появятся здесь</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Backtesting Panel -->
+                <section id="backtesting" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-chart-line"></i> Бэктестирование</h2>
+                    </div>
+                    
+                    <div class="backtest-container">
+                        <div class="backtest-config">
+                            <h3>Настройки Бэктеста</h3>
+                            <form id="backtestForm">
+                                <div class="form-group">
+                                    <label for="backtestDataset">Тестовые Данные:</label>
+                                    <select id="backtestDataset" name="dataset" required>
+                                        <option value="">Выберите датасет</option>
+                                        <option value="august_10_17_full">10-17 августа 2025 (8 дней)</option>
+                                        <option value="august_12_single_day">12 августа 2025 (1 день)</option>
+                                        <option value="august_14_17_volatile">14-17 августа 2025 (4 дня)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="initialBalance">Начальный Баланс ($):</label>
+                                    <input type="number" id="initialBalance" name="balance" value="10000" min="1000" step="1000">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="commissionRate">Комиссия (%):</label>
+                                    <input type="number" id="commissionRate" name="commission" value="0.1" min="0.01" max="1" step="0.01">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="confidenceThreshold">Порог Уверенности:</label>
+                                    <input type="range" id="confidenceThreshold" name="confidence" min="0.1" max="0.8" step="0.05" value="0.3">
+                                    <span id="confidenceValue">30%</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="maxPositionSize">Максимальный Размер Позиции (%):</label>
+                                    <input type="range" id="maxPositionSize" name="max_position" min="0.5" max="10" step="0.5" value="2">
+                                    <span id="positionSizeValue">2%</span>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    <i class="fas fa-play"></i> Запустить Бэктест
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="backtest-results">
+                            <h3>Результаты Бэктеста</h3>
+                            <div class="results-placeholder" id="backtestResults">
+                                <i class="fas fa-chart-bar"></i>
+                                <p>Результаты появятся после запуска бэктеста</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Trades Analysis Panel -->
+                <section id="trades" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-exchange-alt"></i> Анализ Сделок</h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" id="exportTradesBtn">
+                                <i class="fas fa-download"></i> Экспорт
+                            </button>
+                            <button class="btn btn-primary" id="refreshTradesBtn">
+                                <i class="fas fa-sync-alt"></i> Обновить
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="trades-container">
+                        <div class="trades-filters">
+                            <div class="filter-group">
+                                <label>Период:</label>
+                                <select id="tradesDateFilter">
+                                    <option value="all">Все сделки</option>
+                                    <option value="today">Сегодня</option>
+                                    <option value="week">За неделю</option>
+                                    <option value="month">За месяц</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Тип:</label>
+                                <select id="tradesTypeFilter">
+                                    <option value="all">Все</option>
+                                    <option value="BUY">Покупка</option>
+                                    <option value="SELL">Продажа</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>P&L:</label>
+                                <select id="tradesPnlFilter">
+                                    <option value="all">Все</option>
+                                    <option value="profit">Прибыльные</option>
+                                    <option value="loss">Убыточные</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="trades-table-container">
+                            <table class="trades-table" id="tradesTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Время Входа</th>
+                                        <th>Время Выхода</th>
+                                        <th>Тип</th>
+                                        <th>Цена Входа</th>
+                                        <th>Цена Выхода</th>
+                                        <th>Количество</th>
+                                        <th>P&L</th>
+                                        <th>Уверенность</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tradesTableBody">
+                                    <tr>
+                                        <td colspan="10" class="no-data">
+                                            <i class="fas fa-chart-line"></i>
+                                            <p>Запустите бэктест для анализа сделок</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Models Panel -->
+                <section id="models" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-cogs"></i> Управление Моделями</h2>
+                        <button class="btn btn-primary" id="refreshModelsBtn">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                    </div>
+                    
+                    <div class="models-grid" id="modelsGrid">
+                        <div class="model-card active">
+                            <div class="model-header">
+                                <h3>20250822_175417</h3>
+                                <span class="model-status active">Активна</span>
+                            </div>
+                            <div class="model-info">
+                                <div class="model-metric">
+                                    <span class="label">CatBoost:</span>
+                                    <span class="value">98.90%</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Random Forest:</span>
+                                    <span class="value">98.90%</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Признаков:</span>
+                                    <span class="value">22</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Обучено:</span>
+                                    <span class="value">22.08.2025</span>
+                                </div>
+                            </div>
+                            <div class="model-actions">
+                                <button class="btn btn-small btn-primary">Активировать</button>
+                                <button class="btn btn-small btn-secondary">Детали</button>
+                            </div>
+                        </div>
+                        
+                        <div class="model-card">
+                            <div class="model-header">
+                                <h3>20250822_141010</h3>
+                                <span class="model-status inactive">Неактивна</span>
+                            </div>
+                            <div class="model-info">
+                                <div class="model-metric">
+                                    <span class="label">Random Forest:</span>
+                                    <span class="value">68.15%</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Gradient Boosting:</span>
+                                    <span class="value">76.17%</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Признаков:</span>
+                                    <span class="value">23</span>
+                                </div>
+                                <div class="model-metric">
+                                    <span class="label">Обучено:</span>
+                                    <span class="value">22.08.2025</span>
+                                </div>
+                            </div>
+                            <div class="model-actions">
+                                <button class="btn btn-small btn-secondary">Активировать</button>
+                                <button class="btn btn-small btn-secondary">Детали</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Panel -->
+                <section id="settings" class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-sliders-h"></i> Настройки Системы</h2>
+                    </div>
+                    
+                    <div class="settings-container">
+                        <div class="settings-section">
+                            <h3>Общие Настройки</h3>
+                            <div class="setting-item">
+                                <label for="autoRefresh">Автообновление:</label>
+                                <input type="checkbox" id="autoRefresh" checked>
+                            </div>
+                            <div class="setting-item">
+                                <label for="refreshInterval">Интервал (сек):</label>
+                                <input type="number" id="refreshInterval" value="30" min="5" max="300">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Уведомления</h3>
+                            <div class="setting-item">
+                                <label for="notifyTraining">Уведомления об обучении:</label>
+                                <input type="checkbox" id="notifyTraining" checked>
+                            </div>
+                            <div class="setting-item">
+                                <label for="notifyBacktest">Уведомления о бэктесте:</label>
+                                <input type="checkbox" id="notifyBacktest" checked>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Система</h3>
+                            <button class="btn btn-secondary">Очистить Кэш</button>
+                            <button class="btn btn-secondary">Экспорт Настроек</button>
+                            <button class="btn btn-danger">Сброс к Умолчанию</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="tradeDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Детали Сделки</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="tradeDetailContent">
+                <!-- Trade details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

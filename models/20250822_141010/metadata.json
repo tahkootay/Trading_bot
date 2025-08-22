@@ -1,0 +1,42 @@
+{
+  "model_version": "20250822_141010",
+  "training_date": "2025-08-22T14:10:20.816248",
+  "samples_trained": 1794,
+  "samples_tested": 449,
+  "features_count": 23,
+  "feature_names": [
+    "sma_5",
+    "price_vs_sma_5",
+    "sma_10",
+    "price_vs_sma_10",
+    "sma_20",
+    "price_vs_sma_20",
+    "sma_50",
+    "price_vs_sma_50",
+    "rsi",
+    "macd",
+    "bb_upper",
+    "bb_lower",
+    "bb_position",
+    "volatility",
+    "price_change_1",
+    "price_change_5",
+    "price_change_10",
+    "price_change_20",
+    "volume_sma",
+    "volume_ratio",
+    "high_20",
+    "low_20",
+    "price_position"
+  ],
+  "model_scores": {
+    "random_forest": 0.6815144766146993,
+    "gradient_boosting": 0.7616926503340757,
+    "decision_tree": 0.6659242761692651
+  },
+  "ensemble_weights": {
+    "random_forest": 0.4,
+    "gradient_boosting": 0.4,
+    "decision_tree": 0.2
+  }
+}

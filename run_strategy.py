@@ -32,7 +32,7 @@ Examples:
     )
     
     parser.add_argument('--strategy', 
-                       choices=['conservative', 'aggressive'], 
+                       choices=['conservative', 'aggressive', 'improved'], 
                        default='aggressive',
                        help='Strategy to run (default: aggressive)')
     
@@ -65,7 +65,8 @@ Examples:
         
         print("🎯 Strategies:")
         print("  conservative - Original strategy (0 trades on test data)")
-        print("  aggressive   - New momentum strategy (19 trades, works!)")
+        print("  aggressive   - New momentum strategy (19 trades, 15.8% win rate)")
+        print("  improved     - Enhanced strategy (12 trades, 41.7% win rate)")
         print()
         
         print("📦 Data Blocks:")
@@ -76,7 +77,7 @@ Examples:
         print()
         
         print("💡 Recommended command:")
-        print("  python run_strategy.py --strategy aggressive")
+        print("  python run_strategy.py --strategy improved")
         return
     
     # Run the selected strategy
@@ -102,6 +103,52 @@ Examples:
             output_file = f"Output/strategy_aggressive_{args.block}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             with open(output_file, 'w') as f:
                 json.dump(results, f, indent=2, default=str)
+            print(f"\n💾 Results saved to: {output_file}")
+    
+    elif args.strategy == 'improved':
+        print("🎯 Running Improved Strategy")
+        print("=" * 50)
+        
+        from scripts.improved_aggressive_strategy import ImprovedAggressiveStrategy
+        
+        strategy = ImprovedAggressiveStrategy(initial_balance=args.balance)
+        results = strategy.run_enhanced_backtest_with_improvements(args.block)
+        
+        # Generate HTML report if requested
+        if args.html_report:
+            from scripts.aggressive_strategy_with_html import AggressiveStrategyWithHTML
+            html_strategy = AggressiveStrategyWithHTML(initial_balance=args.balance)
+            # Convert results to compatible format and generate HTML
+            html_file = html_strategy.generate_html_report(results, args.block)
+            print(f"\n📄 HTML Report generated: {html_file}")
+        
+        # Save results if requested
+        if args.save_results and results.get('trades'):
+            import json
+            from datetime import datetime
+            
+            output_file = f"Output/strategy_improved_{args.block}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            
+            # Serialize results for JSON
+            json_results = {}
+            for key, value in results.items():
+                if key == 'trades':
+                    json_results[key] = []
+                    for trade in value:
+                        trade_dict = {}
+                        for k, v in trade.items():
+                            if hasattr(v, 'value'):  # Enum
+                                trade_dict[k] = v.value
+                            elif hasattr(v, 'isoformat'):  # Datetime
+                                trade_dict[k] = v.isoformat()
+                            else:
+                                trade_dict[k] = v
+                        json_results[key].append(trade_dict)
+                else:
+                    json_results[key] = value
+            
+            with open(output_file, 'w') as f:
+                json.dump(json_results, f, indent=2, default=str)
             print(f"\n💾 Results saved to: {output_file}")
     
     elif args.strategy == 'conservative':

@@ -7,9 +7,27 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from pathlib import Path
 
-import xgboost as xgb
-import lightgbm as lgb
-from catboost import CatBoostClassifier
+# Try to import advanced ML libraries, fallback to scikit-learn
+try:
+    import xgboost as xgb
+    HAS_XGBOOST = True
+except (ImportError, Exception):
+    HAS_XGBOOST = False
+    xgb = None
+
+try:
+    import lightgbm as lgb
+    HAS_LIGHTGBM = True
+except (ImportError, Exception):
+    HAS_LIGHTGBM = False
+    lgb = None
+
+try:
+    from catboost import CatBoostClassifier
+    HAS_CATBOOST = True
+except (ImportError, Exception):
+    HAS_CATBOOST = False
+    CatBoostClassifier = None
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, TimeSeriesSplit
@@ -28,11 +46,26 @@ class MLModelPredictor:
         ensemble_weights: Dict[str, float] = None,
     ):
         self.models_path = Path(models_path)
-        self.ensemble_weights = ensemble_weights or {
-            "xgboost": 0.4,
-            "lightgbm": 0.3,
-            "catboost": 0.3,
-        }
+        # Dynamic ensemble weights based on available libraries
+        default_weights = {}
+        if HAS_XGBOOST:
+            default_weights["xgboost"] = 0.4
+        if HAS_LIGHTGBM:
+            default_weights["lightgbm"] = 0.3
+        if HAS_CATBOOST:
+            default_weights["catboost"] = 0.3
+        
+        # Always include scikit-learn models
+        if not default_weights:  # If no advanced libraries available
+            default_weights.update({
+                "random_forest": 0.4,
+                "gradient_boosting": 0.4,
+                "decision_tree": 0.2,
+            })
+        else:
+            default_weights["random_forest"] = 0.2  # Add as backup
+        
+        self.ensemble_weights = ensemble_weights or default_weights
         
         self.logger = TradingLogger("ml_models")
         
@@ -50,6 +83,21 @@ class MLModelPredictor:
         """Load trained models from disk."""
         try:
             model_dir = self.models_path / model_version
+            
+            # If latest symlink doesn't exist, try to find any available model directory
+            if not model_dir.exists() and model_version == "latest":
+                # Look for timestamp directories
+                model_dirs = [d for d in self.models_path.iterdir() if d.is_dir() and d.name != "latest"]
+                if model_dirs:
+                    # Use the most recent one
+                    model_dir = sorted(model_dirs)[-1]
+                    self.logger.log_system_event(
+                        event_type="model_fallback",
+                        component="ml_models",
+                        status="info",
+                        details={"fallback_version": model_dir.name}
+                    )
+            
             if not model_dir.exists():
                 self.logger.log_error(
                     error_type="model_load_failed",
@@ -131,25 +179,20 @@ class MLModelPredictor:
             
             for model_name, model in self.models.items():
                 try:
-                    if model_name == "xgboost":
-                        pred_proba = model.predict_proba(feature_vector)[0]
+                    # All models use the same sklearn-style predict_proba interface
+                    pred_proba = model.predict_proba(feature_vector)[0]
+                    
+                    # Handle different number of classes
+                    if len(pred_proba) == 3:  # 3-class: [down, flat, up]
+                        prediction = pred_proba[2] - pred_proba[0]  # P(up) - P(down)
+                        confidence = max(pred_proba) - min(pred_proba)
+                    elif len(pred_proba) == 2:  # 2-class: [down, up]
                         prediction = pred_proba[1] - pred_proba[0]  # P(up) - P(down)
                         confidence = max(pred_proba) - min(pred_proba)
-                    
-                    elif model_name == "lightgbm":
-                        pred_proba = model.predict_proba(feature_vector)[0]
-                        prediction = pred_proba[1] - pred_proba[0]
-                        confidence = max(pred_proba) - min(pred_proba)
-                    
-                    elif model_name == "catboost":
-                        pred_proba = model.predict_proba(feature_vector)[0]
-                        prediction = pred_proba[1] - pred_proba[0]
-                        confidence = max(pred_proba) - min(pred_proba)
-                    
-                    else:  # RandomForest or other sklearn models
-                        pred_proba = model.predict_proba(feature_vector)[0]
-                        prediction = pred_proba[1] - pred_proba[0]
-                        confidence = max(pred_proba) - min(pred_proba)
+                    else:
+                        # Fallback
+                        prediction = 0.0
+                        confidence = 0.5
                     
                     predictions[model_name] = prediction
                     confidences[model_name] = confidence
@@ -278,12 +321,12 @@ class MLModelPredictor:
             
             self.scalers["main"] = scaler
             
-            # Train models
+            # Train models based on available libraries
             trained_models = {}
             model_scores = {}
             
-            # XGBoost
-            if "xgboost" in self.ensemble_weights:
+            # XGBoost (if available)
+            if "xgboost" in self.ensemble_weights and HAS_XGBOOST:
                 xgb_model = xgb.XGBClassifier(
                     n_estimators=100,
                     max_depth=6,
@@ -299,8 +342,8 @@ class MLModelPredictor:
                 trained_models["xgboost"] = xgb_model
                 model_scores["xgboost"] = score
             
-            # LightGBM
-            if "lightgbm" in self.ensemble_weights:
+            # LightGBM (if available)
+            if "lightgbm" in self.ensemble_weights and HAS_LIGHTGBM:
                 lgb_model = lgb.LGBMClassifier(
                     n_estimators=100,
                     max_depth=6,
@@ -316,8 +359,8 @@ class MLModelPredictor:
                 trained_models["lightgbm"] = lgb_model
                 model_scores["lightgbm"] = score
             
-            # CatBoost
-            if "catboost" in self.ensemble_weights:
+            # CatBoost (if available)
+            if "catboost" in self.ensemble_weights and HAS_CATBOOST:
                 cat_model = CatBoostClassifier(
                     iterations=100,
                     depth=6,
@@ -333,19 +376,56 @@ class MLModelPredictor:
                 trained_models["catboost"] = cat_model
                 model_scores["catboost"] = score
             
-            # Random Forest (backup model)
-            rf_model = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=10,
-                random_state=42,
-            )
-            rf_model.fit(X_train_scaled, y_train)
+            # Scikit-learn models (always available)
+            from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+            from sklearn.tree import DecisionTreeClassifier
             
-            y_pred = rf_model.predict(X_test_scaled)
-            rf_score = accuracy_score(y_test, y_pred)
+            # Random Forest
+            if "random_forest" in self.ensemble_weights:
+                rf_model = RandomForestClassifier(
+                    n_estimators=100,
+                    max_depth=10,
+                    random_state=42,
+                    n_jobs=-1,
+                )
+                rf_model.fit(X_train, y_train)  # Tree models don't need scaling
+                
+                y_pred = rf_model.predict(X_test)
+                score = accuracy_score(y_test, y_pred)
+                
+                trained_models["random_forest"] = rf_model
+                model_scores["random_forest"] = score
             
-            trained_models["random_forest"] = rf_model
-            model_scores["random_forest"] = rf_score
+            # Gradient Boosting
+            if "gradient_boosting" in self.ensemble_weights:
+                gb_model = GradientBoostingClassifier(
+                    n_estimators=100,
+                    max_depth=6,
+                    learning_rate=0.1,
+                    random_state=42,
+                )
+                gb_model.fit(X_train_scaled, y_train)
+                
+                y_pred = gb_model.predict(X_test_scaled)
+                score = accuracy_score(y_test, y_pred)
+                
+                trained_models["gradient_boosting"] = gb_model
+                model_scores["gradient_boosting"] = score
+            
+            # Decision Tree
+            if "decision_tree" in self.ensemble_weights:
+                dt_model = DecisionTreeClassifier(
+                    max_depth=15,
+                    min_samples_split=10,
+                    random_state=42,
+                )
+                dt_model.fit(X_train, y_train)  # Tree models don't need scaling
+                
+                y_pred = dt_model.predict(X_test)
+                score = accuracy_score(y_test, y_pred)
+                
+                trained_models["decision_tree"] = dt_model
+                model_scores["decision_tree"] = score
             
             # Save models
             model_dir = self.models_path / model_version
