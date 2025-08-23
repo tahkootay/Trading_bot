@@ -38,6 +38,44 @@ class DataCollector:
         )
         self.logger = TradingLogger("data_collector")
     
+    def _calculate_expected_candles(self, days: int, timeframe: TimeFrame) -> int:
+        """Calculate expected number of candles for given period and timeframe."""
+        minutes_per_day = 24 * 60
+        total_minutes = days * minutes_per_day
+        
+        if timeframe == TimeFrame.M1:
+            return total_minutes
+        elif timeframe == TimeFrame.M5:
+            return total_minutes // 5
+        elif timeframe == TimeFrame.M15:
+            return total_minutes // 15
+        elif timeframe == TimeFrame.H1:
+            return total_minutes // 60
+        elif timeframe == TimeFrame.H4:
+            return total_minutes // 240
+        elif timeframe == TimeFrame.D1:
+            return days
+        else:
+            return total_minutes  # Default to 1-minute
+    
+    def _get_batch_duration_ms(self, timeframe: TimeFrame) -> int:
+        """Get duration in milliseconds for 1000 candles of given timeframe."""
+        # 1000 candles × timeframe interval in minutes × 60 seconds × 1000 ms
+        if timeframe == TimeFrame.M1:
+            return 1000 * 1 * 60 * 1000
+        elif timeframe == TimeFrame.M5:
+            return 1000 * 5 * 60 * 1000
+        elif timeframe == TimeFrame.M15:
+            return 1000 * 15 * 60 * 1000
+        elif timeframe == TimeFrame.H1:
+            return 1000 * 60 * 60 * 1000
+        elif timeframe == TimeFrame.H4:
+            return 1000 * 4 * 60 * 60 * 1000
+        elif timeframe == TimeFrame.D1:
+            return 1000 * 24 * 60 * 60 * 1000
+        else:
+            return 1000 * 1 * 60 * 1000  # Default to 1-minute
+    
     async def collect_historical_data(
         self,
         symbol: str,
@@ -63,8 +101,9 @@ class DataCollector:
                     timeframe = TimeFrame(timeframe_str)
                     print(f"📊 Collecting {timeframe.value} data for {symbol}...")
                     
-                    # Calculate how many candles we need
-                    end_time = datetime.now()
+                    # Calculate time range - use 2024 timestamps since system is in 2025
+                    # but market data is in 2024
+                    end_time = datetime(2024, 8, 23, 12, 0)  # Aug 23, 2024
                     start_time = end_time - timedelta(days=days)
                     
                     # Convert to milliseconds
@@ -72,49 +111,69 @@ class DataCollector:
                     end_timestamp = int(end_time.timestamp() * 1000)
                     
                     all_candles = []
-                    current_start = start_timestamp
+                    current_end = end_timestamp  # Start from most recent and go backwards
                     
-                    print(f"    🔍 Starting collection loop: {start_timestamp} -> {end_timestamp}")
+                    print(f"    🔍 Collecting {days} days of {timeframe.value} data")
                     print(f"    📅 Time range: {start_time} -> {end_time}")
+                    print(f"    📊 Expected candles: ~{self._calculate_expected_candles(days, timeframe)}")
                     
-                    # Bybit limits to 200 candles per request
-                    while current_start < end_timestamp:
+                    batch_count = 0
+                    while current_end > start_timestamp and batch_count < 200:  # Safety limit
+                        batch_count += 1
+                        
                         try:
-                            print(f"    📡 Requesting candles: {current_start} -> {end_timestamp}")
-                            # Try without time constraints first
+                            print(f"    📡 Batch {batch_count}: Requesting up to 1000 candles ending at {datetime.fromtimestamp(current_end/1000)}")
+                            
                             candles = await self.client.get_klines(
                                 symbol=symbol,
                                 interval=timeframe,
-                                limit=200,
-                                # start_time=current_start,  # Comment out for testing
-                                # end_time=end_timestamp,    # Comment out for testing
+                                limit=1000,
+                                start_time=max(start_timestamp, current_end - self._get_batch_duration_ms(timeframe)),
+                                end_time=current_end,
                             )
                             
-                            print(f"    📊 API response: {len(candles) if candles else 0} candles")
+                            if not candles:
+                                print(f"    ⚠️  No candles in batch {batch_count}, trying alternative approach...")
+                                # Try without start_time for this batch
+                                candles = await self.client.get_klines(
+                                    symbol=symbol,
+                                    interval=timeframe,
+                                    limit=1000,
+                                    end_time=current_end,
+                                )
                             
                             if not candles:
-                                print(f"    ⚠️  No candles received, breaking loop")
+                                print(f"    ❌ No candles received in batch {batch_count}, stopping collection")
                                 break
                             
-                            all_candles.extend(candles)
+                            # Filter out candles outside our target range
+                            valid_candles = []
+                            for candle in candles:
+                                candle_ts = int(candle.timestamp.timestamp() * 1000)
+                                if start_timestamp <= candle_ts <= end_timestamp:
+                                    valid_candles.append(candle)
                             
-                            # Update start time for next batch
-                            last_candle_time = candles[-1].timestamp
-                            current_start = int(last_candle_time.timestamp() * 1000) + 1
-                            
-                            print(f"    📈 Collected {len(candles)} candles (total: {len(all_candles)})")
-                            print(f"    🔄 Next start time: {current_start}")
+                            if valid_candles:
+                                all_candles.extend(valid_candles)
+                                print(f"    📈 Batch {batch_count}: {len(valid_candles)} valid candles (total: {len(all_candles)})")
+                                
+                                # Update current_end to earliest candle timestamp - 1ms
+                                earliest_ts = min(int(c.timestamp.timestamp() * 1000) for c in valid_candles)
+                                current_end = earliest_ts - 1
+                            else:
+                                print(f"    ⚠️  Batch {batch_count}: No valid candles in time range")
+                                current_end -= self._get_batch_duration_ms(timeframe)
                             
                             # Small delay to respect rate limits
                             await asyncio.sleep(0.2)
                             
                         except Exception as e:
-                            print(f"    ❌ Error collecting candles: {e}")
+                            print(f"    ❌ Error in batch {batch_count}: {e}")
                             self.logger.log_error(
-                                error_type="candle_collection_failed",
+                                error_type="batch_collection_failed",
                                 component="data_collector",
                                 error_message=str(e),
-                                details={"timeframe": timeframe.value, "start": current_start},
+                                details={"timeframe": timeframe.value, "batch": batch_count},
                             )
                             await asyncio.sleep(1)
                             continue
@@ -123,6 +182,7 @@ class DataCollector:
                     
                     if all_candles:
                         print(f"    🔄 Processing {len(all_candles)} candles...")
+                        
                         # Convert to DataFrame
                         df_data = []
                         for candle in all_candles:
@@ -139,8 +199,20 @@ class DataCollector:
                         df.set_index('timestamp', inplace=True)
                         df.sort_index(inplace=True)
                         
+                        print(f"    📊 Before dedup: {len(df)} candles")
+                        print(f"    📅 Range: {df.index[0]} to {df.index[-1]}")
+                        
                         # Remove duplicates
                         df = df[~df.index.duplicated(keep='last')]
+                        
+                        # Calculate actual period coverage
+                        actual_period = (df.index[-1] - df.index[0]).total_seconds() / (24 * 3600)
+                        expected_candles = self._calculate_expected_candles(days, timeframe)
+                        coverage_pct = (len(df) / expected_candles) * 100 if expected_candles > 0 else 0
+                        
+                        print(f"    ✅ After dedup: {len(df)} candles")
+                        print(f"    📊 Expected: {expected_candles}, Got: {len(df)} ({coverage_pct:.1f}%)")
+                        print(f"    📅 Actual period: {actual_period:.1f} days")
                         
                         # Save to file
                         filename = f"{output_dir}/{symbol}_{timeframe.value}_{days}d.csv"

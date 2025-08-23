@@ -1,0 +1,10 @@
+{
+  "symbol": "SOLUSDT",
+  "interval": "720m",
+  "days_collected": 90,
+  "records_count": 180,
+  "start_time": "2025-05-25 12:00:00",
+  "end_time": "2025-08-23 00:00:00",
+  "source": "bybit_futures_public",
+  "collected_at": "2025-08-23T13:18:08.021702"
+}

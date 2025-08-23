@@ -55,8 +55,15 @@ class MLModelTrainer:
         """Загрузка исторических данных."""
         data_path = Path(data_dir)
         
-        # Приоритет данных: реальные -> блоки -> testnet
+        # Приоритет данных: 90-дневные Bybit futures -> enhanced -> реальные -> блоки -> testnet
         data_files = [
+            # 90-дневные Bybit futures данные (наивысший приоритет)
+            "data_bybit_futures_90d/SOLUSDT_5m_90d_bybit_futures.csv",
+            "data_bybit_futures_90d/SOLUSDT_1m_90d_bybit_futures.csv",
+            "data_bybit_futures_90d/SOLUSDT_15m_90d_bybit_futures.csv",
+            # 90-дневные enhanced данные 
+            "SOLUSDT_5m_90d_enhanced.csv",
+            "SOLUSDT_5m_real_90d.csv",
             # Реальные данные (предпочтительно)
             "SOLUSDT_5m_real_7d.csv",
             "SOLUSDT_5m_real_2025-08-10_to_2025-08-17.csv",
