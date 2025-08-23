@@ -25,12 +25,21 @@ from typing import Dict, List, Tuple, Optional
 warnings.filterwarnings('ignore')
 
 # Добавление src в путь
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+src_path = str(Path(__file__).parent.parent / "src")
+sys.path.insert(0, src_path)
 
-from src.feature_engine.technical_indicators import TechnicalIndicatorCalculator
-from src.models.ml_models import MLModelPredictor
-from src.utils.logger import setup_logging, TradingLogger
-from src.utils.types import TimeFrame
+try:
+    from src.feature_engine.technical_indicators import TechnicalIndicatorCalculator
+    from src.models.ml_models import MLModelPredictor
+    from src.utils.logger import setup_logging, TradingLogger
+    from src.utils.types import TimeFrame
+except ImportError:
+    # Fallback для совместимости с Python 3.9
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.feature_engine.technical_indicators import TechnicalIndicatorCalculator
+    from src.models.ml_models import MLModelPredictor
+    from src.utils.logger import setup_logging, TradingLogger
+    from src.utils.types import TimeFrame
 
 class MLModelTrainer:
     """Класс для обучения ML моделей торгового бота."""
