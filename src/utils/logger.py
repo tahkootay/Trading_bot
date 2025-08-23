@@ -241,3 +241,18 @@ class TradingLogger:
             details=details or {},
             exc_info=exc_info,
         )
+
+
+def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
+    """Simple logger setup for compatibility."""
+    logger = logging.getLogger(name)
+    logger.setLevel(getattr(logging, level.upper()))
+    
+    # Create handler if not exists
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    
+    return logger

@@ -198,9 +198,31 @@ class EnhancedBacktestEngine:
             raise ValueError(f"Not enough data. Need at least {min_periods} candles, got {len(df_primary)}")
         
         # Process each candle
+        import time
+        start_time = time.time()
+        total_candles = len(df_primary) - min_periods
+        
         for i in range(min_periods, len(df_primary)):
-            if i % 500 == 0:
-                print(f"📈 Processing candle {i}/{len(df_primary)} ({i/len(df_primary)*100:.1f}%)")
+            candle_idx = i - min_periods
+            
+            # Enhanced progress logging
+            if candle_idx % 100 == 0 or candle_idx == 0:
+                elapsed = time.time() - start_time
+                progress_pct = (candle_idx / total_candles) * 100
+                
+                if candle_idx > 0:
+                    avg_time_per_candle = elapsed / candle_idx
+                    remaining_candles = total_candles - candle_idx
+                    eta_seconds = avg_time_per_candle * remaining_candles
+                    eta_minutes = int(eta_seconds // 60)
+                    eta_seconds = int(eta_seconds % 60)
+                    
+                    print(f"📈 Progress: {candle_idx}/{total_candles} ({progress_pct:.1f}%) | "
+                          f"Elapsed: {int(elapsed//60)}:{int(elapsed%60):02d} | "
+                          f"ETA: {eta_minutes}:{eta_seconds:02d} | "
+                          f"Trades: {self.total_trades}")
+                else:
+                    print(f"📈 Starting backtest processing {total_candles} candles...")
             
             current_time = df_primary.index[i]
             current_candle = df_primary.iloc[i]
