@@ -98,6 +98,8 @@ class BybitHTTPClient:
         await self._rate_limit()
         
         try:
+            print(f"        🔍 API call params: category=linear, symbol={symbol}, interval={interval.value}, limit={limit}, start={start_time}, end={end_time}")
+            
             response = self.client.get_kline(
                 category="linear",
                 symbol=symbol,
@@ -106,6 +108,8 @@ class BybitHTTPClient:
                 start=start_time,
                 end=end_time,
             )
+            
+            print(f"        📊 API response: {response}")
             
             if response["retCode"] != 0:
                 raise Exception(f"API error: {response['retMsg']}")

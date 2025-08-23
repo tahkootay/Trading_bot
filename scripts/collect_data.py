@@ -11,11 +11,19 @@ import click
 import json
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+src_path = str(Path(__file__).parent.parent / "src")
+sys.path.insert(0, src_path)
 
-from src.data_collector.bybit_client import BybitHTTPClient
-from src.utils.types import TimeFrame
-from src.utils.logger import setup_logging, TradingLogger
+try:
+    from src.data_collector.bybit_client import BybitHTTPClient
+    from src.utils.types import TimeFrame
+    from src.utils.logger import setup_logging, TradingLogger
+except ImportError:
+    # Fallback for Python 3.9 compatibility
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.data_collector.bybit_client import BybitHTTPClient
+    from src.utils.types import TimeFrame
+    from src.utils.logger import setup_logging, TradingLogger
 
 
 class DataCollector:
@@ -66,18 +74,26 @@ class DataCollector:
                     all_candles = []
                     current_start = start_timestamp
                     
+                    print(f"    🔍 Starting collection loop: {start_timestamp} -> {end_timestamp}")
+                    print(f"    📅 Time range: {start_time} -> {end_time}")
+                    
                     # Bybit limits to 200 candles per request
                     while current_start < end_timestamp:
                         try:
+                            print(f"    📡 Requesting candles: {current_start} -> {end_timestamp}")
+                            # Try without time constraints first
                             candles = await self.client.get_klines(
                                 symbol=symbol,
                                 interval=timeframe,
                                 limit=200,
-                                start_time=current_start,
-                                end_time=end_timestamp,
+                                # start_time=current_start,  # Comment out for testing
+                                # end_time=end_timestamp,    # Comment out for testing
                             )
                             
+                            print(f"    📊 API response: {len(candles) if candles else 0} candles")
+                            
                             if not candles:
+                                print(f"    ⚠️  No candles received, breaking loop")
                                 break
                             
                             all_candles.extend(candles)
@@ -86,12 +102,14 @@ class DataCollector:
                             last_candle_time = candles[-1].timestamp
                             current_start = int(last_candle_time.timestamp() * 1000) + 1
                             
-                            print(f"  📈 Collected {len(candles)} candles (total: {len(all_candles)})")
+                            print(f"    📈 Collected {len(candles)} candles (total: {len(all_candles)})")
+                            print(f"    🔄 Next start time: {current_start}")
                             
                             # Small delay to respect rate limits
                             await asyncio.sleep(0.2)
                             
                         except Exception as e:
+                            print(f"    ❌ Error collecting candles: {e}")
                             self.logger.log_error(
                                 error_type="candle_collection_failed",
                                 component="data_collector",
@@ -101,7 +119,10 @@ class DataCollector:
                             await asyncio.sleep(1)
                             continue
                     
+                    print(f"    📊 Total candles collected: {len(all_candles)}")
+                    
                     if all_candles:
+                        print(f"    🔄 Processing {len(all_candles)} candles...")
                         # Convert to DataFrame
                         df_data = []
                         for candle in all_candles:
@@ -148,6 +169,9 @@ class DataCollector:
                         details={"timeframe": timeframe_str},
                     )
                     print(f"  ❌ Failed to collect {timeframe_str} data: {e}")
+        
+        print(f"    📊 Final collected_data keys: {list(collected_data.keys())}")
+        print(f"    📊 Final collected_data values: {[(k, len(v)) for k, v in collected_data.items()]}")
         
         # Save metadata
         metadata = {
@@ -235,11 +259,12 @@ def main(symbol: str, days: int, timeframes: str, output: str, test_only: bool, 
         return
     
     print(f"🔑 Using API key: {api_key[:8]}...")
-    print(f"🌐 Testnet mode: True")
-    print()
     
     # Initialize collector
-    collector = DataCollector(api_key, api_secret, testnet=True)
+    collector = DataCollector(api_key, api_secret, testnet=False)  # Use mainnet for historical data
+    
+    print(f"🌐 Testnet mode: False (using mainnet)")
+    print()
     
     async def run_tasks():
         # Test connection
