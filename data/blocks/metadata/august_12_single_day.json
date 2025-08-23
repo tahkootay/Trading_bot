@@ -1,0 +1,37 @@
+{
+  "block_id": "august_12_single_day",
+  "name": "August 12 Single Day",
+  "description": "Single day for detailed intraday testing",
+  "start_time": "2025-08-12T00:00:00",
+  "end_time": "2025-08-12T23:59:59",
+  "symbol": "SOLUSDT",
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+  ],
+  "block_type": "mixed",
+  "characteristics": {
+    "records_count": 1440,
+    "duration_hours": 23.983333333333334,
+    "price_range": 18.379999999999995,
+    "price_volatility": 0.0010100961131424757,
+    "total_return": 0.08865651284382811,
+    "avg_volume": 10654.95986111111,
+    "max_volume": 214289.0,
+    "high_volatility_periods": 276,
+    "start_price": 175.96,
+    "end_price": 191.56,
+    "min_price": 173.34,
+    "max_price": 191.72
+  },
+  "data_hash": "0d579c3d09aa0b40e69cf31bb95662c2",
+  "created_at": "2025-08-18T19:34:40.362643",
+  "file_paths": {
+    "1m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_12_single_day/SOLUSDT_1m_august_12_single_day.csv",
+    "5m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_12_single_day/SOLUSDT_5m_august_12_single_day.csv",
+    "15m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_12_single_day/SOLUSDT_15m_august_12_single_day.csv",
+    "1h": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_12_single_day/SOLUSDT_1h_august_12_single_day.csv"
+  }
+}

@@ -45,15 +45,32 @@ ENV/
 logs/
 *.log
 
-# Models
-models/trained/
-models/checkpoints/
+# Models (keep structure, ignore large files)
+models/*/
+!models/.gitkeep
+!models/latest
 
-# Data
-data/
+# Data (organized data directory structure)
+data/raw/
+data/bybit_futures/
+data/enhanced/
+data/processed/
 *.csv
 *.parquet
 *.h5
+!data/README.md
+!data/**/README.md
+
+# Trading specific
+catboost_info/
+archive/temp_data/
+
+# Output files (organized but gitignored for size)
+output/backtests/*.json
+output/reports/*.html
+output/models_archive/
+!output/.gitkeep
+!output/*/.gitkeep
 
 # Database
 *.db

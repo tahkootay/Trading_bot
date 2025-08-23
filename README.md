@@ -58,20 +58,41 @@ make run-paper
 
 ```
 trading-bot/
-├── src/
-│   ├── data_collector/      # Real-time data collection
-│   ├── feature_engine/      # Technical indicators & features
-│   ├── models/             # ML models and predictions
-│   ├── signal_generator/   # Trading signal logic
-│   ├── execution/          # Order management
-│   ├── risk_manager/       # Risk controls
-│   ├── notifications/      # Alerts and reporting
-│   └── utils/             # Shared utilities
-├── config/                 # Configuration files
-├── models/                # Trained ML models
-├── tests/                 # Test suite
-├── scripts/               # Utility scripts
-└── docs/                  # Documentation
+├── src/                       # Source code
+│   ├── data_collector/       # Real-time data collection
+│   ├── feature_engine/       # Technical indicators & features
+│   ├── models/               # ML models and predictions
+│   ├── signal_generator/     # Trading signal logic
+│   ├── execution/            # Order management
+│   ├── risk_manager/         # Risk controls
+│   ├── notifications/        # Alerts and reporting
+│   └── utils/                # Shared utilities
+├── data/                      # Data storage (organized structure)
+│   ├── raw/                  # Raw CSV files from exchanges
+│   ├── processed/            # Processed public API data
+│   ├── bybit_futures/        # Bybit futures data (priority)
+│   ├── blocks/               # Fixed data blocks for testing
+│   ├── enhanced/             # Enhanced data with features
+│   └── test/                 # Test data
+├── tools/                     # Development and analysis tools
+│   ├── backtest/             # Backtest execution scripts
+│   ├── testing/              # Test and validation scripts
+│   └── data_collection/      # Data gathering utilities
+├── output/                    # Generated reports and results
+│   ├── reports/              # HTML and Markdown reports
+│   ├── backtests/            # JSON backtest results
+│   └── models_archive/       # Archived model versions
+├── docs/                      # Documentation
+│   ├── claude.md             # Project instructions (CLAUDE.md)
+│   ├── QUICK_START.md        # Quick start guide
+│   └── TESTING_GUIDE.md      # Testing procedures
+├── examples/                  # Example scripts and demos
+│   └── demo_scripts/         # Demonstration utilities
+├── archive/                   # Temporary storage and old files
+├── config/                    # Configuration files
+├── models/                    # Trained ML models
+├── scripts/                   # Core utility scripts
+└── tests/                     # Test suite
 ```
 
 ## ⚙️ Configuration

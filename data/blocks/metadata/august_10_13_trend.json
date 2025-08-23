@@ -1,0 +1,37 @@
+{
+  "block_id": "august_10_13_trend",
+  "name": "August 10-13 Trend Period",
+  "description": "4-day period with strong trending behavior",
+  "start_time": "2025-08-10T00:00:00",
+  "end_time": "2025-08-13T23:59:59",
+  "symbol": "SOLUSDT",
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+  ],
+  "block_type": "trend",
+  "characteristics": {
+    "records_count": 5760,
+    "duration_hours": 95.98333333333333,
+    "price_range": 31.72,
+    "price_volatility": 0.0010511007884658188,
+    "total_return": 0.09612123201488058,
+    "avg_volume": 12222.542256944445,
+    "max_volume": 299087.7,
+    "high_volatility_periods": 1140,
+    "start_price": 182.79,
+    "end_price": 200.36,
+    "min_price": 173.34,
+    "max_price": 205.06
+  },
+  "data_hash": "da62f864300d17f83f5538c6927bfa8c",
+  "created_at": "2025-08-18T19:34:40.125333",
+  "file_paths": {
+    "1m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_10_13_trend/SOLUSDT_1m_august_10_13_trend.csv",
+    "5m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_10_13_trend/SOLUSDT_5m_august_10_13_trend.csv",
+    "15m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_10_13_trend/SOLUSDT_15m_august_10_13_trend.csv",
+    "1h": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_10_13_trend/SOLUSDT_1h_august_10_13_trend.csv"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "block_id": "august_14_17_volatile",
+  "name": "August 14-17 Volatile Period",
+  "description": "4-day period with high volatility",
+  "start_time": "2025-08-14T00:00:00",
+  "end_time": "2025-08-17T23:59:59",
+  "symbol": "SOLUSDT",
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+  ],
+  "block_type": "volatile",
+  "characteristics": {
+    "records_count": 5760,
+    "duration_hours": 95.98333333333333,
+    "price_range": 26.980000000000018,
+    "price_volatility": 0.0012825487129942592,
+    "total_return": -0.04684927406076942,
+    "avg_volume": 11800.217222222223,
+    "max_volume": 1021892.9,
+    "high_volatility_periods": 1140,
+    "start_price": 200.43,
+    "end_price": 191.04,
+    "min_price": 183.1,
+    "max_price": 210.08
+  },
+  "data_hash": "757d362c8170ffd282206072d4f304f2",
+  "created_at": "2025-08-18T19:34:40.285118",
+  "file_paths": {
+    "1m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_14_17_volatile/SOLUSDT_1m_august_14_17_volatile.csv",
+    "5m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_14_17_volatile/SOLUSDT_5m_august_14_17_volatile.csv",
+    "15m": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_14_17_volatile/SOLUSDT_15m_august_14_17_volatile.csv",
+    "1h": "/Users/alexey/Documents/Development/Python/Trading_bot/data/blocks/data/august_14_17_volatile/SOLUSDT_1h_august_14_17_volatile.csv"
+  }
+}

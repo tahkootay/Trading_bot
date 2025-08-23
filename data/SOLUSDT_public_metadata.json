@@ -1,0 +1,18 @@
+{
+  "symbol": "SOLUSDT",
+  "collection_date": "2025-08-23T11:35:14.231290",
+  "days_collected": 90,
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+  ],
+  "total_candles": {
+    "1m": 1000,
+    "5m": 1000,
+    "15m": 1000,
+    "1h": 1000
+  },
+  "api_type": "public"
+}

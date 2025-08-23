@@ -1,0 +1,19 @@
+{
+  "symbol": "SOLUSDT",
+  "collection_date": "2025-08-18T10:27:44.556225",
+  "days_collected": 7,
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+  ],
+  "total_candles": {
+    "1m": 11520,
+    "5m": 2304,
+    "15m": 768,
+    "1h": 192
+  },
+  "data_source": "bybit_public_api",
+  "data_type": "real_market_data"
+}

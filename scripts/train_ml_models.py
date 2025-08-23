@@ -58,20 +58,20 @@ class MLModelTrainer:
         # Приоритет данных: 90-дневные Bybit futures -> enhanced -> реальные -> блоки -> testnet
         data_files = [
             # 90-дневные Bybit futures данные (наивысший приоритет)
-            "data_bybit_futures_90d/SOLUSDT_5m_90d_bybit_futures.csv",
-            "data_bybit_futures_90d/SOLUSDT_1m_90d_bybit_futures.csv",
-            "data_bybit_futures_90d/SOLUSDT_15m_90d_bybit_futures.csv",
-            # 90-дневные enhanced данные 
-            "SOLUSDT_5m_90d_enhanced.csv",
-            "SOLUSDT_5m_real_90d.csv",
+            "bybit_futures/SOLUSDT_5m_90d_bybit_futures.csv",
+            "bybit_futures/SOLUSDT_1m_90d_bybit_futures.csv",
+            "bybit_futures/SOLUSDT_15m_90d_bybit_futures.csv",
+            # 90-дневные публичные данные
+            "processed/SOLUSDT_5m_90d_public.csv",
+            "processed/SOLUSDT_1m_90d_public.csv",
             # Реальные данные (предпочтительно)
-            "SOLUSDT_5m_real_7d.csv",
-            "SOLUSDT_5m_real_2025-08-10_to_2025-08-17.csv",
+            "raw/SOLUSDT_5m_real_7d.csv",
+            "raw/SOLUSDT_5m_real_2025-08-10_to_2025-08-17.csv",
             # Блоки данных
-            "blocks/data/august_10_17_full/SOLUSDT_5m_august_10_17_full.csv",
-            "blocks/data/august_12_single_day/SOLUSDT_5m_august_12_single_day.csv",
+            "blocks/august_10_17_full/SOLUSDT_5m_august_10_17_full.csv",
+            "blocks/august_12_single_day/SOLUSDT_5m_august_12_single_day.csv",
             # Testnet как резерв
-            "SOLUSDT_5m_testnet.csv"
+            "test/SOLUSDT_5m_testnet.csv"
         ]
         
         dfs = []

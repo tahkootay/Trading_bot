@@ -55,12 +55,16 @@ class PublicDataCollector:
     ) -> dict:
         """Сбор исторических данных через публичный API."""
         
-        Path(output_dir).mkdir(exist_ok=True)
+        # Создаем структуру папок
+        processed_dir = Path(output_dir) / "processed"
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        
         collected_data = {}
         
         print(f"🚀 Публичный сбор данных для {symbol}")
         print(f"📅 Период: {days} дней")
         print(f"⏱️  Временные фреймы: {', '.join(timeframes)}")
+        print(f"📁 Сохранение в: {processed_dir}")
         print()
         
         async with aiohttp.ClientSession() as session:
@@ -202,7 +206,7 @@ class PublicDataCollector:
                         df = df[~df.index.duplicated(keep='last')]
                         
                         # Сохранить в файл
-                        filename = f"{output_dir}/{symbol}_{timeframe.value}_{days}d_public.csv"
+                        filename = processed_dir / f"{symbol}_{timeframe.value}_{days}d_public.csv"
                         df.to_csv(filename)
                         
                         collected_data[timeframe] = df
@@ -234,7 +238,7 @@ class PublicDataCollector:
             "api_type": "public",
         }
         
-        with open(f"{output_dir}/{symbol}_public_metadata.json", "w") as f:
+        with open(processed_dir / f"{symbol}_public_metadata.json", "w") as f:
             json.dump(metadata, f, indent=2, default=str)
         
         return collected_data

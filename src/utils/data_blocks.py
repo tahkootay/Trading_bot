@@ -77,7 +77,7 @@ class DataBlockManager:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         # Directories for different components
-        self.blocks_dir = self.cache_dir / "data"
+        self.blocks_dir = self.cache_dir
         self.metadata_dir = self.cache_dir / "metadata"
         self.processed_dir = self.cache_dir / "processed"
         
@@ -180,7 +180,7 @@ class DataBlockManager:
             timeframes = ["1m", "5m", "15m", "1h"]
         
         if source_data_dir is None:
-            source_data_dir = Path(__file__).parent.parent.parent / "data"
+            source_data_dir = Path(__file__).parent.parent.parent / "data" / "blocks"
         
         # Create block directory
         block_dir = self.blocks_dir / block_id
