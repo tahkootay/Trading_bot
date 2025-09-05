@@ -27,6 +27,7 @@ Professional intraday trading bot designed to capture $2+ price movements on SOL
 
 ```
 trading-bot/                        # ROOT: Essential files only
+│─  claude.md                  # This file (project instructions)
 ├── README.md                       # Project overview
 ├── requirements.txt                # Dependencies  
 ├── pyproject.toml                  # Python project config
@@ -46,7 +47,6 @@ trading-bot/                        # ROOT: Essential files only
 │   ├── testing/                   # Test and validation scripts
 │   └── data_collection/           # Data gathering utilities
 ├── docs/                          # ALL DOCUMENTATION
-│   ├── claude.md                  # This file (project instructions)
 │   ├── project_management/        # Project reports, reorganization docs
 │   ├── QUICK_START.md            # Getting started guide
 │   └── TESTING_GUIDE.md          # Testing procedures
