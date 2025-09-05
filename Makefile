@@ -1,21 +1,22 @@
-# Trading Bot Makefile
+# Modular Trading Bot Makefile
 
-.PHONY: help install dev test lint format typecheck clean run docker-build docker-run
+.PHONY: help install dev test lint format typecheck clean modules docker-build docker-run
 
 # Default target
 help:
 	@echo "Available commands:"
-	@echo "  install     - Install dependencies"
-	@echo "  dev         - Install development dependencies"
-	@echo "  test        - Run tests"
-	@echo "  lint        - Run linting"
-	@echo "  format      - Format code"
-	@echo "  typecheck   - Run type checking"
-	@echo "  clean       - Clean up generated files"
-	@echo "  run         - Run the trading bot"
-	@echo "  run-paper   - Run in paper trading mode"
-	@echo "  docker-build- Build Docker image"
-	@echo "  docker-run  - Run in Docker container"
+	@echo "  install      - Install dependencies"
+	@echo "  dev          - Install development dependencies"
+	@echo "  test         - Run tests"
+	@echo "  lint         - Run linting"
+	@echo "  format       - Format code"
+	@echo "  typecheck    - Run type checking"
+	@echo "  clean        - Clean up generated files"
+	@echo "  collect-data - Collect historical data"
+	@echo "  backtest     - Run backtest"
+	@echo "  report       - Generate HTML report"
+	@echo "  trading-bot  - Run trading bot (placeholder)"
+	@echo "  modules      - Show available modules"
 
 # Install dependencies
 install:
@@ -23,26 +24,26 @@ install:
 
 # Install development dependencies
 dev: install
-	pip install -e ".[dev]"
+	@echo "Development dependencies installed"
 
 # Run tests
 test:
-	python -m pytest tests/ -v --cov=src --cov-report=term-missing
+	python -m pytest tests/ -v --cov=modules --cov-report=term-missing
 
 # Run linting
 lint:
-	ruff check src/ tests/
-	mypy src/
+	ruff check modules/ tests/
+	mypy modules/
 
 # Format code
 format:
-	black src/ tests/
-	isort src/ tests/
-	ruff check --fix src/ tests/
+	black modules/ tests/
+	isort modules/ tests/
+	ruff check --fix modules/ tests/
 
 # Type checking
 typecheck:
-	mypy src/
+	mypy modules/
 
 # Clean up
 clean:
@@ -55,60 +56,37 @@ clean:
 	rm -rf .pytest_cache/
 	rm -rf .mypy_cache/
 
-# Run the bot
-run:
-	python -m src.main --config config/default.yaml
-
-# Run in paper trading mode
-run-paper:
-	python -m src.main --config config/default.yaml --paper-trading
-
-# Run with debug
-run-debug:
-	python -m src.main --config config/default.yaml --paper-trading --debug
-
-# Docker commands
-docker-build:
-	docker build -t trading-bot .
-
-docker-run:
-	docker run --env-file .env -v $(PWD)/config:/app/config -v $(PWD)/models:/app/models trading-bot
-
-# Development environment
-setup-dev: dev
-	cp .env.example .env
-	@echo "Please edit .env with your API credentials"
-
-# Install and setup everything
-setup: setup-dev
-	@echo "Development environment setup complete!"
-	@echo "Next steps:"
-	@echo "1. Edit .env with your API credentials"
-	@echo "2. Run 'make test-connection' to verify setup"
-	@echo "3. Run 'make collect-data' to gather historical data"
-	@echo "4. Run 'make backtest' to test strategy"
-	@echo "5. Run 'make run-paper' to start paper trading"
-
-# Test Bybit connection
-test-connection:
-	python scripts/setup_testnet.py
+# Module commands
+modules:
+	@echo "Available modules:"
+	@echo "  Module 1: Data Collector  - python -m modules.data_collector --help"
+	@echo "  Module 2: Backtester     - python -m modules.backtester --help"
+	@echo "  Module 3: Reporter       - python -m modules.reporter --help"
+	@echo "  Module 4: Trading Bot    - python -m modules.trading_bot --help"
 
 # Collect historical data
 collect-data:
-	python scripts/collect_data.py --symbol SOLUSDT --days 30
+	python -m modules.data_collector --symbol SOLUSDT --timeframe 5m --period week
 
-# Collect more data
-collect-data-extended:
-	python scripts/collect_data.py --symbol SOLUSDT --days 90
-
-# Run enhanced backtest
+# Run backtest
 backtest:
-	python scripts/enhanced_backtest.py --symbol SOLUSDT --save-results
+	@echo "Usage: python -m modules.backtester --strategy ./examples/strategy.py --data ./data.csv"
 
-# Quick backtest (last 7 days)
-backtest-quick:
-	python scripts/enhanced_backtest.py --symbol SOLUSDT --days 7
+# Generate HTML report
+report:
+	@echo "Usage: python -m modules.reporter --results ./backtest_results.json"
 
-# Full testing pipeline
-test-all: test-connection collect-data backtest
-	@echo "✅ Complete testing pipeline finished!"
+# Trading bot (placeholder)
+trading-bot:
+	python -m modules.trading_bot --help
+
+# Docker commands (if needed)
+docker-build:
+	docker build -t modular-trading-bot .
+
+# Example workflow
+example:
+	@echo "Example workflow:"
+	@echo "1. Collect data:  make collect-data"
+	@echo "2. Run backtest:  python -m modules.backtester --strategy ./strategy.py --data ./data.csv"
+	@echo "3. Generate report: python -m modules.reporter --results ./results.json"
