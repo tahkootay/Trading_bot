@@ -22,97 +22,76 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
+# Virtual environments
 venv/
 env/
 ENV/
-.venv/
-.env/
+.venv
+.env
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Environment variables
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.log
+*.tmp
+temp/
+tmp/
+
+# Model files (large binary files)
+models/
+*.joblib
+*.pkl
+*.model
+
+# Training artifacts
+catboost_info/
+mlruns/
+runs/
+
+# API Keys and secrets
 .env
 .env.local
-.env.production
+.env.*.local
+secrets.yaml
+credentials.json
 
-# Logs
-logs/
-*.log
-
-# Models (keep structure, ignore large files)
-models/*/
-!models/.gitkeep
-!models/latest
-
-# Data (organized data directory structure)
+# Data files (can be large)
+*.csv
+*.json
+*.parquet
 data/raw/
-data/bybit_futures/
 data/enhanced/
 data/processed/
-*.csv
-*.parquet
-*.h5
-!data/README.md
-!data/**/README.md
 
-# Trading specific
-catboost_info/
-archive/temp_data/
-
-# Output files (organized but gitignored for size)
+# Reports and outputs (regenerated)
 output/backtests/*.json
 output/reports/*.html
-output/models_archive/
-!output/.gitkeep
-!output/*/.gitkeep
-
-# Database
-*.db
-*.sqlite3
-
-# Cache
-.cache/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Coverage
-.coverage
-htmlcov/
-coverage.xml
-
-# Jupyter
-.ipynb_checkpoints/
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-ehthumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-
-# Secrets
-secrets/
-*.key
-*.pem
 
 # Docker
 .dockerignore
 
-# Local config overrides
-config/local.yaml
-config/production.yaml
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
 
-# Test results
-test-results/
-test-reports/
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Archive and temporary files
+archive/temp_data/
