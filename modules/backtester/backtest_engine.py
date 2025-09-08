@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
 import pandas as pd
 
-from strategy_base import StrategyBase, BacktestConfig, MarketData, Position, Signal, TradeSignal
+from .strategy_base import StrategyBase, BacktestConfig, MarketData, Position, Signal, TradeSignal
 
 
 @dataclass
@@ -222,18 +222,21 @@ class BacktestEngine:
         if direction == "SHORT":
             entry_price = data.close * (1 - self.config.slippage_rate)
         
-        # Calculate commission
-        commission = quantity * entry_price * self.config.commission_rate
+        # Calculate number of shares/contracts from dollar amount
+        num_shares = quantity / entry_price
+        
+        # Calculate commission based on dollar value
+        commission = quantity * self.config.commission_rate
         
         # Check if we have enough capital
-        required_capital = quantity * entry_price + commission
+        required_capital = quantity + commission
         if required_capital > self.state.capital:
             return  # Not enough capital
         
         # Open position
         self.state.position = Position(
             direction=direction,
-            quantity=quantity / entry_price,  # Convert to shares/contracts
+            quantity=num_shares,  # Number of shares/contracts
             entry_price=entry_price,
             entry_time=data.timestamp,
             unrealized_pnl=0.0,
@@ -318,7 +321,7 @@ class BacktestEngine:
     def _calculate_results(self, start_date: datetime, end_date: datetime) -> 'BacktestResults':
         """Calculate final backtest results and metrics."""
         
-        from result_formatter import BacktestResults
+        from .result_formatter import BacktestResults
         
         # Calculate daily returns
         daily_returns = self._calculate_daily_returns()

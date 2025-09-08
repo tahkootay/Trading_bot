@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 import json
 from pathlib import Path
 
-from backtest_engine import Trade, EquityPoint, DailyReturn
+from .backtest_engine import Trade, EquityPoint, DailyReturn
 
 
 @dataclass

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from bybit_client import Candle
+from .bybit_client import Candle
 
 
 class OutputFormat(Enum):

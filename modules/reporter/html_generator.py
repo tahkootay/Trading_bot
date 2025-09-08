@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from template_manager import TemplateManager
-from config import ReporterConfig
+from .template_manager import TemplateManager
+from .config import ReporterConfig
 
 
 class HTMLReportGenerator:
@@ -51,9 +51,7 @@ class HTMLReportGenerator:
             scripts=self._generate_scripts(),
             header=sections['header'],
             summary=sections['summary'],
-            performance_charts=sections['performance_charts'],
-            trade_analysis=sections['trade_analysis'],
-            risk_analysis=sections['risk_analysis'],
+            candlestick_chart=sections['candlestick_chart'],
             detailed_tables=sections['detailed_tables'],
             footer=sections['footer']
         )
@@ -198,14 +196,8 @@ class HTMLReportGenerator:
         # Summary section
         sections['summary'] = self._generate_summary_section(results_data)
         
-        # Performance charts section
-        sections['performance_charts'] = self._generate_charts_section(charts)
-        
-        # Trade analysis section
-        sections['trade_analysis'] = self._generate_trade_analysis_section(results_data)
-        
-        # Risk analysis section
-        sections['risk_analysis'] = self._generate_risk_analysis_section(results_data)
+        # Candlestick chart section  
+        sections['candlestick_chart'] = await self._generate_candlestick_section(results_data)
         
         # Detailed tables section
         sections['detailed_tables'] = self._generate_tables_section(results_data)
@@ -537,9 +529,14 @@ class HTMLReportGenerator:
             </div>
             """
         
-        # Generate trade table rows
+        # Sort trades in reverse chronological order (most recent first)
+        sorted_trades = sorted(trades, key=lambda x: x.get('exit_time', ''), reverse=True)
+        
+        # Generate trade table rows - show ALL trades, not just first 50
         trade_rows = ""
-        for i, trade in enumerate(trades[:50]):  # Limit to first 50 trades
+        trade_data_js = []  # For storing trade data for modal
+        
+        for i, trade in enumerate(sorted_trades):
             entry_time = trade.get('entry_time', '')
             exit_time = trade.get('exit_time', '')
             direction = trade.get('direction', '')
@@ -547,6 +544,10 @@ class HTMLReportGenerator:
             exit_price = trade.get('exit_price', 0)
             pnl = trade.get('pnl', 0)
             duration = trade.get('duration_minutes', 0)
+            entry_reason = trade.get('entry_reason', 'N/A')
+            exit_reason = trade.get('exit_reason', 'N/A')
+            quantity = trade.get('quantity', 0)
+            commission = trade.get('commission', 0)
             
             # Format times
             try:
@@ -563,22 +564,43 @@ class HTMLReportGenerator:
             
             pnl_class = 'text-success' if pnl >= 0 else 'text-danger'
             
+            # Store trade data for modal
+            trade_data = {
+                'entry_time': entry_time,
+                'exit_time': exit_time,
+                'direction': direction,
+                'entry_price': entry_price,
+                'exit_price': exit_price,
+                'quantity': quantity,
+                'pnl': pnl,
+                'commission': commission,
+                'duration_minutes': duration,
+                'entry_reason': entry_reason,
+                'exit_reason': exit_reason
+            }
+            trade_data_js.append(trade_data)
+            
             trade_rows += f"""
-            <tr>
+            <tr onclick="showTradeDetails(tradeData[{i}])" style="cursor: pointer;">
                 <td>{i+1}</td>
                 <td>{entry_formatted}</td>
                 <td>{exit_formatted}</td>
                 <td><span class="badge badge-{direction.lower()}">{direction}</span></td>
-                <td>${entry_price:.2f}</td>
-                <td>${exit_price:.2f}</td>
+                <td>${entry_price:.4f}</td>
+                <td>${exit_price:.4f}</td>
                 <td class="{pnl_class}">${pnl:+.2f}</td>
                 <td>{duration:.0f}m</td>
             </tr>
             """
         
+        import json
+        
         return f"""
         <div class="tables-section">
             <h2>Trade Details</h2>
+            <p style="color: #6c757d; margin-bottom: 20px;">
+                Showing all {len(sorted_trades)} trades (most recent first). Click on a trade to see detailed information.
+            </p>
             <div class="table-container">
                 <table class="trade-table">
                     <thead>
@@ -597,9 +619,26 @@ class HTMLReportGenerator:
                         {trade_rows}
                     </tbody>
                 </table>
-                {f'<p class="table-note">Showing first 50 trades of {len(trades)} total</p>' if len(trades) > 50 else ''}
             </div>
         </div>
+        
+        <!-- Modal for trade details -->
+        <div id="tradeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                    <h2>Trade Details</h2>
+                </div>
+                <div class="modal-body" id="tradeModalBody">
+                    <!-- Trade details will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Store trade data for modal access
+        var tradeData = {json.dumps(trade_data_js)};
+        </script>
         """
     
     def _generate_footer_section(self, results_data: Dict[str, Any]) -> str:
@@ -637,3 +676,191 @@ class HTMLReportGenerator:
         """Generate JavaScript for interactive elements."""
         
         return self.template_manager.load_scripts()
+    
+    async def _generate_candlestick_section(self, results_data: Dict[str, Any]) -> str:
+        """Generate candlestick chart with trade entry/exit points."""
+        import pandas as pd
+        import json
+        from pathlib import Path
+        
+        try:
+            # Get backtest period
+            backtest_info = results_data.get('backtest_info', {})
+            start_date = backtest_info.get('start_date', '')
+            end_date = backtest_info.get('end_date', '')
+            
+            # Find appropriate CSV file with OHLC data
+            data_dir = Path("data/raw")
+            csv_files = list(data_dir.glob("SOLUSDT_5m_*.csv"))
+            
+            # Find file that covers our backtest period
+            best_file = None
+            for csv_file in csv_files:
+                # Check if filename suggests it covers our period
+                if "20250807" in str(csv_file) and "20250906" in str(csv_file):
+                    best_file = csv_file
+                    break
+            
+            if not best_file and csv_files:
+                # Fallback to any available file
+                best_file = sorted(csv_files)[-1]
+            
+            if not best_file:
+                return '<div class="no-data">No OHLC data available for candlestick chart</div>'
+            
+            # Read OHLC data
+            df = pd.read_csv(best_file)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            
+            # Filter data to backtest period if dates available
+            if start_date and end_date:
+                start_dt = pd.to_datetime(start_date)
+                end_dt = pd.to_datetime(end_date)
+                df = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
+            
+            # Keep all original data - don't sample/reduce candles
+            # User specifically wants to see all candles with horizontal scrolling
+            
+            # Get trades data
+            trades = results_data.get('trades', [])
+            
+            # Convert timestamps to ISO format for better compatibility  
+            timestamps_str = [ts.isoformat() for ts in df['timestamp']]
+            
+            # Prepare chart data
+            chart_html = f"""
+            <div class="charts-section">
+                <h2>📊 Price Chart with Trade Signals</h2>
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>Candlestick Chart</h3>
+                        <div class="chart-description">
+                            Price movement with entry and exit points ({len(df)} candles, {len(trades)} trades)<br>
+                            <small style="color: #888;">💡 Use the slider below to navigate through time periods. Drag to zoom, double-click to reset.</small>
+                        </div>
+                    </div>
+                    <div class="chart-content">
+                        <div id="candlestick-chart" style="width:100%;height:600px;"></div>
+                        <div id="chart-status" style="margin-top:10px; color:#666; text-align:center;">Loading chart...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {{
+                try {{
+                    // Status update
+                    document.getElementById('chart-status').textContent = 'Preparing data...';
+                    
+                    // Candlestick chart data preparation
+                    var candleData = {{
+                        x: {json.dumps(timestamps_str)},
+                        open: {json.dumps(df['open'].tolist())},
+                        high: {json.dumps(df['high'].tolist())},
+                        low: {json.dumps(df['low'].tolist())},
+                        close: {json.dumps(df['close'].tolist())},
+                        type: 'candlestick',
+                        name: 'SOLUSDT',
+                        increasing: {{line: {{color: '#26a69a'}}}},
+                        decreasing: {{line: {{color: '#ef5350'}}}}
+                    }};
+                    
+                    // Trade entry/exit points - show all trades
+                    var allTrades = {json.dumps(trades)};
+                    
+                    var entryPoints = {{
+                        x: allTrades.map(function(trade) {{ return trade.entry_time; }}),
+                        y: allTrades.map(function(trade) {{ return trade.entry_price; }}),
+                        mode: 'markers',
+                        type: 'scatter',
+                        name: 'Entry Points',
+                        marker: {{
+                            color: allTrades.map(function(trade) {{ 
+                                return trade.direction === 'LONG' ? '#2196F3' : '#FF5722';
+                            }}),
+                            size: 10,
+                            symbol: allTrades.map(function(trade) {{
+                                return trade.direction === 'LONG' ? 'triangle-up' : 'triangle-down';
+                            }})
+                        }},
+                        text: allTrades.map(function(trade) {{
+                            return 'Entry ' + trade.direction + ' $' + trade.entry_price.toFixed(4);
+                        }}),
+                        hovertemplate: '%{{text}}<extra></extra>'
+                    }};
+                    
+                    var exitPoints = {{
+                        x: allTrades.map(function(trade) {{ return trade.exit_time; }}),
+                        y: allTrades.map(function(trade) {{ return trade.exit_price; }}),
+                        mode: 'markers', 
+                        type: 'scatter',
+                        name: 'Exit Points',
+                        marker: {{
+                            color: allTrades.map(function(trade) {{
+                                return trade.pnl > 0 ? '#4CAF50' : '#F44336';
+                            }}),
+                            size: 8,
+                            symbol: 'x'
+                        }},
+                        text: allTrades.map(function(trade) {{
+                            return 'Exit $' + trade.exit_price.toFixed(4) + ' P&L: $' + trade.pnl.toFixed(2);
+                        }}),
+                        hovertemplate: '%{{text}}<extra></extra>'
+                    }};
+                    
+                    var layout = {{
+                        title: 'Trading Strategy Performance - All {len(df)} Candles',
+                        xaxis: {{
+                            title: 'Time',
+                            type: 'date',
+                            rangeslider: {{
+                                visible: true,
+                                thickness: 0.1
+                            }},
+                            range: [
+                                '{timestamps_str[0]}',
+                                '{timestamps_str[min(200, len(timestamps_str)-1)]}'
+                            ]
+                        }},
+                        yaxis: {{
+                            title: 'Price (USDT)'
+                        }},
+                        showlegend: true,
+                        hovermode: 'x unified',
+                        margin: {{l: 60, r: 30, t: 80, b: 100}}
+                    }};
+                    
+                    var config = {{
+                        responsive: true,
+                        displayModeBar: true,
+                        displaylogo: false,
+                        scrollZoom: true,
+                        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+                    }};
+                    
+                    document.getElementById('chart-status').textContent = 'Rendering chart...';
+                    
+                    Plotly.newPlot('candlestick-chart', [candleData, entryPoints, exitPoints], layout, config)
+                        .then(function() {{
+                            document.getElementById('chart-status').textContent = 'Chart loaded successfully!';
+                            setTimeout(function() {{
+                                document.getElementById('chart-status').style.display = 'none';
+                            }}, 2000);
+                        }})
+                        .catch(function(error) {{
+                            console.error('Chart error:', error);
+                            document.getElementById('chart-status').textContent = 'Error loading chart: ' + error.message;
+                        }});
+                        
+                }} catch (error) {{
+                    console.error('Chart initialization error:', error);
+                    document.getElementById('chart-status').textContent = 'Error initializing chart: ' + error.message;
+                }}
+            }});
+            </script>
+            """
+            
+            return chart_html
+            
+        except Exception as e:
+            return f'<div class="no-data">Error generating candlestick chart: {str(e)}</div>'

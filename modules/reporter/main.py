@@ -13,10 +13,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from html_generator import HTMLReportGenerator
-from chart_builder import ChartBuilder
-from template_manager import TemplateManager
-from config import ReporterConfig
+from .html_generator import HTMLReportGenerator
+from .chart_builder import ChartBuilder
+from .template_manager import TemplateManager
+from .config import ReporterConfig
 
 
 class ReportGenerator:

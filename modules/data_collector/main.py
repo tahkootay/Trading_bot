@@ -18,9 +18,9 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from bybit_client import BybitDataCollector
-from data_formats import DataFormatter, OutputFormat
-from config import DataCollectorConfig
+from .bybit_client import BybitDataCollector
+from .data_formats import DataFormatter, OutputFormat
+from .config import DataCollectorConfig
 
 
 class HistoricalDataCollector:
@@ -228,7 +228,7 @@ Examples:
     timeframe_group = parser.add_mutually_exclusive_group(required=True)
     timeframe_group.add_argument(
         "--timeframe", "-t",
-        help="Single timeframe (1m, 5m, 15m, 1h, 2h, 4h, 6h, 12h, 1d)"
+        help="Single timeframe (1m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1d)"
     )
     timeframe_group.add_argument(
         "--timeframes", "-T",
@@ -293,29 +293,92 @@ Examples:
     return parser
 
 
+def align_time_to_timeframe(dt: datetime, timeframe: str, is_start: bool = True) -> datetime:
+    """
+    Align datetime to timeframe boundaries.
+    
+    Args:
+        dt: Datetime to align
+        timeframe: Timeframe string (e.g., "5m", "1h")
+        is_start: If True, align to start of interval, else to end
+        
+    Returns:
+        Aligned datetime
+    """
+    # Get timeframe in minutes
+    timeframe_map = {
+        "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+        "1h": 60, "2h": 120, "4h": 240, "6h": 360, 
+        "12h": 720, "1d": 1440
+    }
+    
+    if timeframe not in timeframe_map:
+        return dt
+    
+    minutes = timeframe_map[timeframe]
+    
+    if minutes < 60:  # Sub-hourly alignment
+        # Align to minute boundary
+        aligned_minute = (dt.minute // minutes) * minutes
+        aligned = dt.replace(minute=aligned_minute, second=0, microsecond=0)
+        
+        if not is_start and aligned < dt:
+            # For end time, move to next interval if we're not exactly on boundary
+            aligned += timedelta(minutes=minutes)
+            
+    elif minutes < 1440:  # Hourly alignment
+        hours = minutes // 60
+        aligned_hour = (dt.hour // hours) * hours
+        aligned = dt.replace(hour=aligned_hour, minute=0, second=0, microsecond=0)
+        
+        if not is_start and aligned < dt:
+            aligned += timedelta(hours=hours)
+            
+    else:  # Daily alignment
+        aligned = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if not is_start and aligned < dt:
+            aligned += timedelta(days=1)
+    
+    return aligned
+
+
 def parse_date_range(args) -> tuple[datetime, datetime]:
-    """Parse date range from arguments."""
+    """Parse date range from arguments with proper timeframe alignment."""
+    
+    # Get timeframe for alignment (from first timeframe if multiple)
+    if hasattr(args, 'timeframe') and args.timeframe:
+        timeframe = args.timeframe
+    elif hasattr(args, 'timeframes') and args.timeframes:
+        timeframe = args.timeframes.split(',')[0].strip()
+    else:
+        timeframe = "5m"  # Default fallback
     
     if args.period:
-        # Standard periods
-        end_date = datetime.now()
+        # Standard periods - align to current time boundaries
+        raw_end = datetime.now()
         
         if args.period == "hour":
-            start_date = end_date - timedelta(hours=1)
+            raw_start = raw_end - timedelta(hours=1)
         elif args.period == "day":
-            start_date = end_date - timedelta(days=1)
+            raw_start = raw_end - timedelta(days=1)
         elif args.period == "week":
-            start_date = end_date - timedelta(weeks=1)
+            raw_start = raw_end - timedelta(weeks=1)
         elif args.period == "month":
-            start_date = end_date - timedelta(days=30)
+            raw_start = raw_end - timedelta(days=30)
         elif args.period == "3months":
-            start_date = end_date - timedelta(days=90)
+            raw_start = raw_end - timedelta(days=90)
         elif args.period == "6months":
-            start_date = end_date - timedelta(days=180)
+            raw_start = raw_end - timedelta(days=180)
         elif args.period == "year":
-            start_date = end_date - timedelta(days=365)
+            raw_start = raw_end - timedelta(days=365)
         else:
             raise ValueError(f"Unknown period: {args.period}")
+        
+        # Align boundaries to timeframe
+        start_date = align_time_to_timeframe(raw_start, timeframe, is_start=True)
+        # For end date, align to the most recent closed candle
+        end_date = align_time_to_timeframe(raw_end, timeframe, is_start=True)  # Use start alignment to get closed candle
             
     else:
         # Custom date range
@@ -334,12 +397,18 @@ def parse_date_range(args) -> tuple[datetime, datetime]:
                     end_date = datetime.strptime(args.end, "%Y-%m-%d")
             else:
                 end_date = datetime.now()
+            
+            # Align custom dates to timeframe boundaries
+            start_date = align_time_to_timeframe(start_date, timeframe, is_start=True)
+            end_date = align_time_to_timeframe(end_date, timeframe, is_start=False)
                 
         except ValueError as e:
             raise ValueError(f"Invalid date format: {e}")
     
     if start_date >= end_date:
         raise ValueError("Start date must be before end date")
+        
+    print(f"🕐 Aligned time range: {start_date} to {end_date} (timeframe: {timeframe})")
         
     return start_date, end_date
 
@@ -348,7 +417,7 @@ def parse_timeframes(args) -> List[str]:
     """Parse timeframes from arguments."""
     
     if args.all_timeframes:
-        return ["1m", "5m", "15m", "1h", "2h", "4h", "6h", "12h", "1d"]
+        return ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d"]
     elif args.timeframes:
         return [tf.strip() for tf in args.timeframes.split(",")]
     elif args.timeframe:

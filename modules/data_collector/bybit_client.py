@@ -94,7 +94,7 @@ class BybitDataCollector:
         limit_per_request: int = 1000
     ) -> List[Candle]:
         """
-        Collect historical OHLCV data for a symbol.
+        Collect historical OHLCV data for a symbol using block-based approach.
         
         Args:
             symbol: Trading pair (e.g., SOLUSDT)
@@ -110,27 +110,47 @@ class BybitDataCollector:
         # Convert timeframe
         timeframe = TimeFrame.from_string(interval)
         
-        # Convert dates to milliseconds
-        start_ms = int(start_time.timestamp() * 1000)
-        end_ms = int(end_time.timestamp() * 1000)
+        # Calculate timeframe in minutes for proper block calculation
+        timeframe_minutes = self._get_timeframe_minutes(interval)
         
-        all_candles = []
-        current_start = start_ms
+        # Calculate total expected candles (more precise calculation)
+        total_duration_minutes = int((end_time - start_time).total_seconds() / 60)
+        # Add 1 to include both start and end boundaries, then subtract 1 if end time is on exact boundary
+        expected_candles = (total_duration_minutes // timeframe_minutes)
+        
+        # Check if we're exactly on timeframe boundary for end time
+        if total_duration_minutes % timeframe_minutes == 0:
+            expected_candles += 1  # Include the boundary candle
         
         print(f"📊 Collecting {symbol} {interval} data from {start_time} to {end_time}")
+        print(f"📈 Expected candles: ~{expected_candles} ({total_duration_minutes} minutes / {timeframe_minutes}m intervals)")
         
-        while current_start < end_ms:
+        all_candles = []
+        current_start = start_time
+        block_number = 1
+        
+        while current_start < end_time:
+            # Calculate block end time (limit by end_time)
+            block_duration_minutes = limit_per_request * timeframe_minutes
+            block_end = current_start + timedelta(minutes=block_duration_minutes)
+            if block_end > end_time:
+                block_end = end_time
+            
             await self._rate_limit()
             
             try:
-                print(f"   📡 API request: start={datetime.fromtimestamp(current_start/1000)}, limit={limit_per_request}")
+                print(f"   📦 Block {block_number}: {current_start.strftime('%m-%d %H:%M')} → {block_end.strftime('%m-%d %H:%M')}")
+                
+                # Convert to milliseconds for API
+                start_ms = int(current_start.timestamp() * 1000)
+                end_ms = int(block_end.timestamp() * 1000)
                 
                 response = self.client.get_kline(
                     category="linear",
                     symbol=symbol,
                     interval=timeframe.value,
                     limit=limit_per_request,
-                    start=current_start,
+                    start=start_ms,
                     end=end_ms,
                 )
                 
@@ -140,68 +160,125 @@ class BybitDataCollector:
                 klines = response["result"]["list"]
                 
                 if not klines:
-                    print(f"   ⚠️ No more data available")
-                    break
+                    print(f"   ⚠️ No data in this block, moving to next")
+                    # Move to next block
+                    current_start = block_end
+                    block_number += 1
+                    continue
                 
                 # Process candles
                 batch_candles = []
                 for kline in klines:
-                    candle = Candle(
-                        timestamp=datetime.fromtimestamp(int(kline[0]) / 1000),
-                        open=float(kline[1]),
-                        high=float(kline[2]),
-                        low=float(kline[3]),
-                        close=float(kline[4]),
-                        volume=float(kline[5]),
-                        symbol=symbol,
-                        timeframe=interval,
-                    )
-                    batch_candles.append(candle)
+                    candle_timestamp = datetime.fromtimestamp(int(kline[0]) / 1000)
+                    
+                    # Only include candles within our requested range
+                    if start_time <= candle_timestamp <= end_time:
+                        candle = Candle(
+                            timestamp=candle_timestamp,
+                            open=float(kline[1]),
+                            high=float(kline[2]),
+                            low=float(kline[3]),
+                            close=float(kline[4]),
+                            volume=float(kline[5]),
+                            symbol=symbol,
+                            timeframe=interval,
+                        )
+                        batch_candles.append(candle)
                 
                 # Sort by timestamp and add to collection
                 batch_candles.sort(key=lambda x: x.timestamp)
                 all_candles.extend(batch_candles)
                 
-                print(f"   ✅ Retrieved {len(batch_candles)} candles")
+                print(f"   ✅ Retrieved {len(batch_candles)} candles (Total: {len(all_candles)})")
                 
-                # Update start time for next request
+                # Move to next block based on the last candle timestamp
                 if batch_candles:
-                    last_timestamp = int(batch_candles[-1].timestamp.timestamp() * 1000)
-                    current_start = last_timestamp + 1
+                    last_candle_time = batch_candles[-1].timestamp
+                    # Next block starts from the next interval after last candle
+                    current_start = last_candle_time + timedelta(minutes=timeframe_minutes)
                 else:
-                    break
+                    # No candles in this block, move to next block
+                    current_start = block_end
                 
-                # If we got fewer candles than requested, we've reached the end
-                if len(batch_candles) < limit_per_request:
-                    break
+                block_number += 1
+                
+                # Progress indicator for large collections
+                if block_number % 5 == 0:
+                    progress = min(100, (len(all_candles) / expected_candles) * 100) if expected_candles > 0 else 0
+                    print(f"   📊 Progress: {progress:.1f}% ({len(all_candles)} candles collected)")
                     
             except Exception as e:
-                print(f"   ❌ API request failed: {e}")
-                # Add small delay before retry
-                await asyncio.sleep(1)
-                # Move to next time window to avoid getting stuck
-                current_start += 60000 * limit_per_request  # Estimate next window
+                print(f"   ❌ Block {block_number} failed: {e}")
+                # Add delay before retry
+                await asyncio.sleep(2)
+                # Move to next block to avoid getting stuck
+                current_start = block_end
+                block_number += 1
                 continue
         
-        # Remove duplicates and sort
+        # Remove duplicates and sort (enhanced deduplication)
         unique_candles = {}
+        duplicates_found = 0
+        
         for candle in all_candles:
-            key = candle.timestamp
+            key = (candle.timestamp, candle.symbol, candle.timeframe)
             if key not in unique_candles:
                 unique_candles[key] = candle
+            else:
+                duplicates_found += 1
+        
+        if duplicates_found > 0:
+            print(f"   🔄 Removed {duplicates_found} duplicate candles")
         
         final_candles = list(unique_candles.values())
         final_candles.sort(key=lambda x: x.timestamp)
         
-        # Filter by date range (API might return data outside requested range)
-        filtered_candles = [
-            candle for candle in final_candles
-            if start_time <= candle.timestamp <= end_time
-        ]
+        # Final statistics with detailed analysis
+        if final_candles and expected_candles > 0:
+            # Calculate actual time range from data
+            actual_start = min(candle.timestamp for candle in final_candles)
+            actual_end = max(candle.timestamp for candle in final_candles)
+            actual_duration = int((actual_end - actual_start).total_seconds() / 60)
+            actual_expected = (actual_duration // timeframe_minutes) + 1
+            
+            theoretical_coverage = (len(final_candles) / expected_candles * 100)
+            actual_coverage = (len(final_candles) / actual_expected * 100) if actual_expected > 0 else 100
+            
+            print(f"📈 Collection complete: {len(final_candles)} candles")
+            print(f"   📊 Theoretical coverage: {theoretical_coverage:.1f}% ({len(final_candles)}/{expected_candles})")
+            print(f"   📊 Actual coverage: {actual_coverage:.1f}% ({len(final_candles)}/{actual_expected}) - based on available data range")
+            
+            missing_candles = expected_candles - len(final_candles)
+            if missing_candles > 0:
+                print(f"   ⚠️ Missing {missing_candles} candles - likely due to no trading activity or exchange gaps")
+        else:
+            coverage_percent = (len(final_candles) / expected_candles * 100) if expected_candles > 0 else 100
+            print(f"📈 Collection complete: {len(final_candles)} candles ({coverage_percent:.1f}% coverage)")
+            
+            if coverage_percent < 95:
+                print(f"⚠️ Warning: Only {coverage_percent:.1f}% coverage. Some data may be missing from exchange.")
         
-        print(f"📈 Total collected: {len(filtered_candles)} candles")
+        return final_candles
+    
+    def _get_timeframe_minutes(self, interval: str) -> int:
+        """Convert timeframe string to minutes."""
+        timeframe_map = {
+            "1m": 1, "1": 1,
+            "5m": 5, "5": 5,
+            "15m": 15, "15": 15,
+            "30m": 30, "30": 30,
+            "1h": 60, "60": 60, "60m": 60,
+            "2h": 120, "120": 120, "120m": 120,
+            "4h": 240, "240": 240, "240m": 240,
+            "6h": 360, "360": 360, "360m": 360,
+            "12h": 720, "720": 720, "720m": 720,
+            "1d": 1440, "D": 1440, "1D": 1440,
+        }
         
-        return filtered_candles
+        if interval not in timeframe_map:
+            raise ValueError(f"Unsupported timeframe: {interval}")
+            
+        return timeframe_map[interval]
     
     async def get_available_symbols(self) -> List[str]:
         """Get list of available trading symbols."""

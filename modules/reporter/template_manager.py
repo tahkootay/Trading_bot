@@ -57,6 +57,75 @@ class TemplateManager:
                 section.style.display = section.style.display === 'none' ? 'block' : 'none';
             }
         }
+        
+        // Modal functionality
+        function showTradeDetails(tradeData) {
+            var modal = document.getElementById('tradeModal');
+            var modalBody = document.getElementById('tradeModalBody');
+            
+            var details = `
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Время входа:</span>
+                    <span class="modal-detail-value">${tradeData.entry_time}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Время выхода:</span>
+                    <span class="modal-detail-value">${tradeData.exit_time}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Направление:</span>
+                    <span class="modal-detail-value">${tradeData.direction}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Цена входа:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.entry_price).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Цена выхода:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.exit_price).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Количество:</span>
+                    <span class="modal-detail-value">${parseFloat(tradeData.quantity).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">P&L:</span>
+                    <span class="modal-detail-value" style="color: ${tradeData.pnl >= 0 ? '#27ae60' : '#e74c3c'}">$${parseFloat(tradeData.pnl).toFixed(2)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Комиссия:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.commission).toFixed(2)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Длительность:</span>
+                    <span class="modal-detail-value">${tradeData.duration_minutes} мин</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Причина входа:</span>
+                    <span class="modal-detail-value">${tradeData.entry_reason}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Причина выхода:</span>
+                    <span class="modal-detail-value">${tradeData.exit_reason}</span>
+                </div>
+            `;
+            
+            modalBody.innerHTML = details;
+            modal.style.display = 'block';
+        }
+        
+        function closeModal() {
+            var modal = document.getElementById('tradeModal');
+            modal.style.display = 'none';
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            var modal = document.getElementById('tradeModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
         </script>
         """
     
@@ -76,9 +145,7 @@ class TemplateManager:
             <div class="report-container">
                 {header}
                 {summary}
-                {performance_charts}
-                {trade_analysis}
-                {risk_analysis}
+                {candlestick_chart}
                 {detailed_tables}
                 {footer}
             </div>
@@ -130,9 +197,7 @@ class TemplateManager:
                 </div>
                 {header}
                 {summary}
-                {performance_charts}
-                {trade_analysis}
-                {risk_analysis}
+                {candlestick_chart}
                 {detailed_tables}
                 {footer}
             </div>
@@ -550,6 +615,7 @@ class TemplateManager:
         
         .trade-table tr:hover {
             background: #f8f9fa;
+            cursor: pointer;
         }
         
         .badge {
@@ -625,6 +691,70 @@ class TemplateManager:
             }
         }
         
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .modal-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .modal-body {
+            line-height: 1.6;
+        }
+        
+        .modal-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+        
+        .modal-detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .modal-detail-value {
+            color: #212529;
+        }
+        
         @media print {
             body {
                 background: white;
@@ -647,6 +777,10 @@ class TemplateManager:
             .stat-card,
             .risk-card {
                 page-break-inside: avoid;
+            }
+            
+            .modal {
+                display: none !important;
             }
         }
         """

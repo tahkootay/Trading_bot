@@ -17,9 +17,9 @@ import importlib.util
 
 import pandas as pd
 
-from strategy_base import StrategyBase, BacktestConfig
-from backtest_engine import BacktestEngine
-from result_formatter import ResultFormatter, BacktestResults
+from .strategy_base import StrategyBase, BacktestConfig
+from .backtest_engine import BacktestEngine
+from .result_formatter import ResultFormatter, BacktestResults
 
 
 class BacktestRunner:

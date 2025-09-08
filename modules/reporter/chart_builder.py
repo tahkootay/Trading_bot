@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from config import ReporterConfig
+from .config import ReporterConfig
 
 
 class ChartBuilder:
