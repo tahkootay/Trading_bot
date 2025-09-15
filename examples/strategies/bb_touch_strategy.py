@@ -5,11 +5,11 @@ from typing import Optional
 
 class BBTouchStrategy(StrategyBase):
     """
-    Bollinger Bands Touch Strategy - версия с соотношением R/R 1:1.
+    Bollinger Bands Touch Strategy - только лонги с улучшенным R/R.
     
     Правила:
-    - LONG: При касании нижней BB → закрываем при росте на 3 USDT или стоп-лосс 3 USDT
-    - SHORT: При касании верхней BB → закрываем при падении на 3 USDT или стоп-лосс 3 USDT
+    - LONG: При касании нижней BB → TP=3 USDT, SL=6 USDT (R/R 1:2)
+    - SHORT: ОТКЛЮЧЕНЫ
     """
     
     def _initialize(self):
@@ -17,8 +17,8 @@ class BBTouchStrategy(StrategyBase):
         self.parameters = {
             'bb_period': 20,           # Период Bollinger Bands
             'bb_deviation': 2.0,       # Стандартное отклонение
-            'take_profit_usdt': 3.0,   # Тейк-профит: 3 USDT (R/R 1:1)
-            'stop_loss_usdt': 3.0,     # Стоп-лосс: 3 USDT  
+            'take_profit_usdt': 3.0,   # Тейк-профит: 3 USDT 
+            'stop_loss_usdt': 6.0,     # Стоп-лосс: 6 USDT (R/R 1:2)
             'position_size_pct': 0.05, # 5% от капитала
         }
         
@@ -83,7 +83,7 @@ class BBTouchStrategy(StrategyBase):
             print(f"🟢 LONG сигнал на баре {self.state['bar_count']}: Касание нижней BB")
             print(f"   Цена: ${current_price:.2f}, BB Lower: ${bb['lower']:.2f}")
             print(f"   TP: ${current_price + self.parameters['take_profit_usdt']:.2f} (+3 USDT)")
-            print(f"   SL: ${current_price - self.parameters['stop_loss_usdt']:.2f} (-3 USDT)")
+            print(f"   SL: ${current_price - self.parameters['stop_loss_usdt']:.2f} (-6 USDT)")
             
             return TradeSignal(
                 signal=Signal.BUY,
@@ -92,22 +92,7 @@ class BBTouchStrategy(StrategyBase):
                 take_profit=current_price + self.parameters['take_profit_usdt']
             )
         
-        # SHORT: Касание верхней линии BB
-        if current_price >= bb['upper']:
-            self.state['trades_count'] += 1
-            self.state['entry_price'] = current_price
-            
-            print(f"🔴 SHORT сигнал на баре {self.state['bar_count']}: Касание верхней BB")
-            print(f"   Цена: ${current_price:.2f}, BB Upper: ${bb['upper']:.2f}")
-            print(f"   TP: ${current_price - self.parameters['take_profit_usdt']:.2f} (-3 USDT)")
-            print(f"   SL: ${current_price + self.parameters['stop_loss_usdt']:.2f} (+3 USDT)")
-            
-            return TradeSignal(
-                signal=Signal.SELL,
-                reason=f"BB Touch SHORT: Цена {current_price:.2f} >= BB Upper {bb['upper']:.2f}",
-                stop_loss=current_price + self.parameters['stop_loss_usdt'],
-                take_profit=current_price - self.parameters['take_profit_usdt']
-            )
+        # SHORT: ОТКЛЮЧЕНЫ в данной версии стратегии
         
         return TradeSignal(signal=Signal.HOLD)
     
@@ -127,33 +112,16 @@ class BBTouchStrategy(StrategyBase):
                     reason=f"TP LONG: Рост на {profit:.2f} USDT (цель: +3 USDT)"
                 )
             
-            # Stop Loss: падение на 3 USDT
+            # Stop Loss: падение на 6 USDT
             if current_price <= entry_price - self.parameters['stop_loss_usdt']:
                 loss = entry_price - current_price
                 print(f"🛑 Закрываем LONG со стоп-лоссом: -${loss:.2f} USDT")
                 return TradeSignal(
                     signal=Signal.CLOSE_LONG,
-                    reason=f"SL LONG: Падение на {loss:.2f} USDT (лимит: -3 USDT)"
+                    reason=f"SL LONG: Падение на {loss:.2f} USDT (лимит: -6 USDT)"
                 )
         
-        elif position.direction == "SHORT":
-            # Take Profit: падение на 3 USDT  
-            if current_price <= entry_price - self.parameters['take_profit_usdt']:
-                profit = entry_price - current_price
-                print(f"🎯 Закрываем SHORT с прибылью: +${profit:.2f} USDT")
-                return TradeSignal(
-                    signal=Signal.CLOSE_SHORT,
-                    reason=f"TP SHORT: Падение на {profit:.2f} USDT (цель: +3 USDT)"
-                )
-            
-            # Stop Loss: рост на 3 USDT
-            if current_price >= entry_price + self.parameters['stop_loss_usdt']:
-                loss = current_price - entry_price
-                print(f"🛑 Закрываем SHORT со стоп-лоссом: -${loss:.2f} USDT")
-                return TradeSignal(
-                    signal=Signal.CLOSE_SHORT,
-                    reason=f"SL SHORT: Рост на {loss:.2f} USDT (лимит: -3 USDT)"
-                )
+        # SHORT позиции не используются в данной стратегии
         
         return TradeSignal(signal=Signal.HOLD)
     

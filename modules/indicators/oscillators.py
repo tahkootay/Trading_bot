@@ -151,6 +151,13 @@ class MACD(IndicatorBase):
     
     def update(self, value: float) -> Optional[Dict[str, float]]:
         """Update MACD with new value."""
+        # Add value to self.values for is_ready() check
+        self.values.append(value)
+        
+        # Keep only necessary history
+        if len(self.values) > self.period * 2:
+            self.values = self.values[-self.period * 2:]
+        
         fast_ema = self.fast_ema.update(value)
         slow_ema = self.slow_ema.update(value)
         

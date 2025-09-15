@@ -94,4 +94,15 @@ htmlcov/
 .ipynb_checkpoints
 
 # Archive and temporary files
-archive/temp_data/
+archive/
+scripts/temp_*.py
+tests/temp_*.py
+
+# Project organization
+/calculate_indicators.py
+/collect_*.py
+/debug_*.py
+/detailed_analysis.py
+/test_*.py
+/verify_*.py
+/simple_integration_test.py
