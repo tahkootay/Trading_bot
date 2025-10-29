@@ -1,0 +1,3020 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Trading Strategy - Backtest Report</title>
+            <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .report-toolbar {
+            text-align: right;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-print {
+            background-color: #1976D2;
+            color: white;
+        }
+        
+        .btn-print:hover {
+            background-color: #1565C0;
+        }
+        
+        h1, h2, h3, h4 {
+            margin-bottom: 16px;
+            color: #2c3e50;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            margin-top: 40px;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            color: #34495e;
+        }
+        
+        h4 {
+            font-size: 1.2em;
+            color: #5a6c7d;
+        }
+        
+        .report-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .strategy-title {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header-subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            display: block;
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            display: block;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .return-positive {
+            color: #27ae60;
+        }
+        
+        .return-negative {
+            color: #e74c3c;
+        }
+        
+        .grade-Aplus, .grade-A, .grade-Aminus {
+            color: #27ae60;
+        }
+        
+        .grade-Bplus, .grade-B, .grade-Bminus {
+            color: #f39c12;
+        }
+        
+        .grade-Cplus, .grade-C, .grade-Cminus {
+            color: #e67e22;
+        }
+        
+        .grade-D, .grade-F {
+            color: #e74c3c;
+        }
+        
+        .summary-section {
+            margin: 40px 0;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .summary-card {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+        
+        .metric-highlight {
+            background: #e8f4fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .metric-highlight .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .profit-positive {
+            color: #27ae60;
+        }
+        
+        .profit-negative {
+            color: #e74c3c;
+        }
+        
+        .drawdown {
+            color: #e74c3c;
+        }
+        
+        .charts-section {
+            margin: 40px 0;
+        }
+        
+        .chart-container {
+            margin: 30px 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .chart-header {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .chart-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .chart-description {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .chart-content {
+            padding: 20px;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .trade-analysis-section,
+        .risk-analysis-section {
+            margin: 40px 0;
+        }
+        
+        .trade-stats-grid,
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        
+        .stat-card,
+        .risk-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .stat-card h4,
+        .risk-card h4 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .stat-row,
+        .risk-metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label,
+        .risk-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .stat-value,
+        .risk-value {
+            font-weight: 600;
+        }
+        
+        .text-success {
+            color: #28a745;
+        }
+        
+        .text-danger {
+            color: #dc3545;
+        }
+        
+        .risk-assessment {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        .risk-low {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .risk-moderate {
+            color: #ffc107;
+            font-weight: 600;
+        }
+        
+        .risk-high {
+            color: #fd7e14;
+            font-weight: 600;
+        }
+        
+        .risk-extreme {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .drawdown-value {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .tables-section {
+            margin: 40px 0;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .trade-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .trade-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .trade-table tr:hover {
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-long {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-short {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .table-note {
+            margin-top: 10px;
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .report-footer {
+            margin-top: 60px;
+            padding: 30px 0;
+            border-top: 2px solid #dee2e6;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .footer-left p {
+            margin-bottom: 5px;
+            color: #6c757d;
+        }
+        
+        .footer-right {
+            max-width: 50%;
+        }
+        
+        .disclaimer {
+            font-size: 0.85em;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .footer-right {
+                max-width: 100%;
+            }
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .modal-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .modal-body {
+            line-height: 1.6;
+        }
+        
+        .modal-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+        
+        .modal-detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .modal-detail-value {
+            color: #212529;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .report-container {
+                box-shadow: none;
+                max-width: none;
+            }
+            
+            .report-toolbar {
+                display: none;
+            }
+            
+            .chart-container {
+                page-break-inside: avoid;
+            }
+            
+            .summary-card,
+            .stat-card,
+            .risk-card {
+                page-break-inside: avoid;
+            }
+            
+            .modal {
+                display: none !important;
+            }
+        }
+        
+                .report-header {
+                    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+                }
+                
+                .summary-card {
+                    border-left-color: #2c3e50;
+                    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+                }
+                
+                .stat-card,
+                .risk-card {
+                    border-left: 3px solid #3498db;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="report-container">
+                
+        <div class="report-header">
+            <div class="header-main">
+                <h1 class="strategy-title">Trading Strategy</h1>
+                <div class="header-subtitle">Backtest Analysis Report</div>
+            </div>
+            <div class="header-info">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Period</span>
+                        <span class="info-value">June 01, 2025 - August 31, 2025</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total Return</span>
+                        <span class="info-value return-negative">-1.07%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Performance Grade</span>
+                        <span class="info-value grade-F">F</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Generated</span>
+                        <span class="info-value">September 16, 2025 at 05:11 PM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+                
+        <div class="summary-section">
+            <h2>Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card capital">
+                    <h3>Capital</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Initial</span>
+                        <span class="metric-value">$10,000.00</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Final</span>
+                        <span class="metric-value">$9,892.79</span>
+                    </div>
+                    <div class="metric-highlight">
+                        <span class="metric-label">Net Profit</span>
+                        <span class="metric-value profit-negative">$-107.21</span>
+                    </div>
+                </div>
+                
+                <div class="summary-card performance">
+                    <h3>Performance</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Return</span>
+                        <span class="metric-value return-negative">-1.07%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Sharpe Ratio</span>
+                        <span class="metric-value">-0.290</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Max Drawdown</span>
+                        <span class="metric-value drawdown">1.12%</span>
+                    </div>
+                </div>
+                
+                <div class="summary-card trading">
+                    <h3>Trading Activity</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Trades</span>
+                        <span class="metric-value">200</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Win Rate</span>
+                        <span class="metric-value">34.5%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Profit Factor</span>
+                        <span class="metric-value">0.63</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+                <div class="no-data">No OHLC data available for candlestick chart</div>
+                
+        <div class="tables-section">
+            <h2>Trade Details</h2>
+            <p style="color: #6c757d; margin-bottom: 20px;">
+                Showing all 200 trades (most recent first). Click on a trade to see detailed information.
+            </p>
+            <div class="table-container">
+                <table class="trade-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Entry Time</th>
+                            <th>Exit Time</th>
+                            <th>Direction</th>
+                            <th>Entry Price</th>
+                            <th>Exit Price</th>
+                            <th>P&L</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+            <tr onclick="showTradeDetails(tradeData[0])" style="cursor: pointer;">
+                <td>1</td>
+                <td>08/08 00:00</td>
+                <td>08/08 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$169.4993</td>
+                <td>$171.4684</td>
+                <td class="text-success">$+2.18</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[1])" style="cursor: pointer;">
+                <td>2</td>
+                <td>08/07 12:00</td>
+                <td>08/07 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$168.8287</td>
+                <td>$169.1407</td>
+                <td class="text-success">$+0.25</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[2])" style="cursor: pointer;">
+                <td>3</td>
+                <td>08/07 05:00</td>
+                <td>08/07 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$168.4583</td>
+                <td>$167.8420</td>
+                <td class="text-danger">$-0.84</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[3])" style="cursor: pointer;">
+                <td>4</td>
+                <td>08/06 16:00</td>
+                <td>08/06 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$164.0639</td>
+                <td>$163.3765</td>
+                <td class="text-danger">$-0.95</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[4])" style="cursor: pointer;">
+                <td>5</td>
+                <td>08/06 11:00</td>
+                <td>08/06 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.5324</td>
+                <td>$163.0568</td>
+                <td class="text-success">$+0.52</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[5])" style="cursor: pointer;">
+                <td>6</td>
+                <td>08/06 09:00</td>
+                <td>08/06 10:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.7526</td>
+                <td>$161.6082</td>
+                <td class="text-danger">$-1.51</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[6])" style="cursor: pointer;">
+                <td>7</td>
+                <td>08/05 16:00</td>
+                <td>08/05 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$168.9888</td>
+                <td>$170.7990</td>
+                <td class="text-success">$+2.00</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[7])" style="cursor: pointer;">
+                <td>8</td>
+                <td>08/05 12:00</td>
+                <td>08/05 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$168.4783</td>
+                <td>$167.4524</td>
+                <td class="text-danger">$-1.32</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[8])" style="cursor: pointer;">
+                <td>9</td>
+                <td>08/05 03:00</td>
+                <td>08/05 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$167.3472</td>
+                <td>$169.2306</td>
+                <td class="text-success">$+2.11</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[9])" style="cursor: pointer;">
+                <td>10</td>
+                <td>08/04 19:00</td>
+                <td>08/04 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.7736</td>
+                <td>$164.7651</td>
+                <td class="text-success">$+1.08</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[10])" style="cursor: pointer;">
+                <td>11</td>
+                <td>08/04 14:00</td>
+                <td>08/04 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.0929</td>
+                <td>$162.2076</td>
+                <td class="text-danger">$-1.19</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[11])" style="cursor: pointer;">
+                <td>12</td>
+                <td>08/04 04:00</td>
+                <td>08/04 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.0719</td>
+                <td>$161.7081</td>
+                <td class="text-danger">$-0.56</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[12])" style="cursor: pointer;">
+                <td>13</td>
+                <td>08/03 22:00</td>
+                <td>08/04 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.1520</td>
+                <td>$161.8979</td>
+                <td class="text-danger">$-0.43</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[13])" style="cursor: pointer;">
+                <td>14</td>
+                <td>08/03 07:00</td>
+                <td>08/03 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$159.7696</td>
+                <td>$160.9089</td>
+                <td class="text-success">$+1.29</td>
+                <td>540m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[14])" style="cursor: pointer;">
+                <td>15</td>
+                <td>08/02 23:00</td>
+                <td>08/03 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$161.6014</td>
+                <td>$159.0308</td>
+                <td class="text-danger">$-3.26</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[15])" style="cursor: pointer;">
+                <td>16</td>
+                <td>08/02 14:00</td>
+                <td>08/02 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$164.5244</td>
+                <td>$164.2456</td>
+                <td class="text-danger">$-0.45</td>
+                <td>360m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[16])" style="cursor: pointer;">
+                <td>17</td>
+                <td>08/02 11:00</td>
+                <td>08/02 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$165.2251</td>
+                <td>$164.4454</td>
+                <td class="text-danger">$-1.05</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[17])" style="cursor: pointer;">
+                <td>18</td>
+                <td>08/02 06:00</td>
+                <td>08/02 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.7826</td>
+                <td>$164.4953</td>
+                <td class="text-success">$+1.96</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[18])" style="cursor: pointer;">
+                <td>19</td>
+                <td>08/02 02:00</td>
+                <td>08/02 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$166.5664</td>
+                <td>$163.5363</td>
+                <td class="text-danger">$-3.72</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[19])" style="cursor: pointer;">
+                <td>20</td>
+                <td>08/01 21:00</td>
+                <td>08/01 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$169.4793</td>
+                <td>$166.6632</td>
+                <td class="text-danger">$-3.41</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[20])" style="cursor: pointer;">
+                <td>21</td>
+                <td>08/01 17:00</td>
+                <td>08/01 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$168.7185</td>
+                <td>$165.3845</td>
+                <td class="text-danger">$-4.03</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[21])" style="cursor: pointer;">
+                <td>22</td>
+                <td>08/01 07:00</td>
+                <td>08/01 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$170.3902</td>
+                <td>$169.3904</td>
+                <td class="text-danger">$-1.28</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[22])" style="cursor: pointer;">
+                <td>23</td>
+                <td>07/31 22:00</td>
+                <td>08/01 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$177.4473</td>
+                <td>$177.0428</td>
+                <td class="text-danger">$-0.57</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[23])" style="cursor: pointer;">
+                <td>24</td>
+                <td>07/31 02:00</td>
+                <td>07/31 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$176.2060</td>
+                <td>$179.1906</td>
+                <td class="text-success">$+3.23</td>
+                <td>300m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[24])" style="cursor: pointer;">
+                <td>25</td>
+                <td>07/31 00:00</td>
+                <td>07/31 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$179.4993</td>
+                <td>$175.6542</td>
+                <td class="text-danger">$-4.36</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[25])" style="cursor: pointer;">
+                <td>26</td>
+                <td>07/30 12:00</td>
+                <td>07/30 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$181.1209</td>
+                <td>$180.5393</td>
+                <td class="text-danger">$-0.76</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[26])" style="cursor: pointer;">
+                <td>27</td>
+                <td>07/30 08:00</td>
+                <td>07/30 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$181.4713</td>
+                <td>$180.0098</td>
+                <td class="text-danger">$-1.71</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[27])" style="cursor: pointer;">
+                <td>28</td>
+                <td>07/30 04:00</td>
+                <td>07/30 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$181.3412</td>
+                <td>$179.9399</td>
+                <td class="text-danger">$-1.65</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[28])" style="cursor: pointer;">
+                <td>29</td>
+                <td>07/29 23:00</td>
+                <td>07/30 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$180.1900</td>
+                <td>$180.8290</td>
+                <td class="text-success">$+0.58</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[29])" style="cursor: pointer;">
+                <td>30</td>
+                <td>07/29 19:00</td>
+                <td>07/29 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$183.9638</td>
+                <td>$182.4174</td>
+                <td class="text-danger">$-1.79</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[30])" style="cursor: pointer;">
+                <td>31</td>
+                <td>07/28 19:00</td>
+                <td>07/28 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$193.0829</td>
+                <td>$189.9998</td>
+                <td class="text-danger">$-3.28</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[31])" style="cursor: pointer;">
+                <td>32</td>
+                <td>07/28 16:00</td>
+                <td>07/28 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$193.3231</td>
+                <td>$192.0977</td>
+                <td class="text-danger">$-1.38</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[32])" style="cursor: pointer;">
+                <td>33</td>
+                <td>07/28 07:00</td>
+                <td>07/28 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$189.8997</td>
+                <td>$188.0817</td>
+                <td class="text-danger">$-2.02</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[33])" style="cursor: pointer;">
+                <td>34</td>
+                <td>07/28 04:00</td>
+                <td>07/28 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$188.1580</td>
+                <td>$188.4514</td>
+                <td class="text-success">$+0.19</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[34])" style="cursor: pointer;">
+                <td>35</td>
+                <td>07/27 22:00</td>
+                <td>07/28 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$186.6264</td>
+                <td>$186.7830</td>
+                <td class="text-success">$+0.05</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[35])" style="cursor: pointer;">
+                <td>36</td>
+                <td>07/27 17:00</td>
+                <td>07/27 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$187.8777</td>
+                <td>$186.8530</td>
+                <td class="text-danger">$-1.20</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[36])" style="cursor: pointer;">
+                <td>37</td>
+                <td>07/27 07:00</td>
+                <td>07/27 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$185.6855</td>
+                <td>$187.6821</td>
+                <td class="text-success">$+2.01</td>
+                <td>300m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[37])" style="cursor: pointer;">
+                <td>38</td>
+                <td>07/27 04:00</td>
+                <td>07/27 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$186.5764</td>
+                <td>$184.9249</td>
+                <td class="text-danger">$-1.87</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[38])" style="cursor: pointer;">
+                <td>39</td>
+                <td>07/27 01:00</td>
+                <td>07/27 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$186.2461</td>
+                <td>$185.7740</td>
+                <td class="text-danger">$-0.62</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[39])" style="cursor: pointer;">
+                <td>40</td>
+                <td>07/26 22:00</td>
+                <td>07/26 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$187.8076</td>
+                <td>$186.7131</td>
+                <td class="text-danger">$-1.28</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[40])" style="cursor: pointer;">
+                <td>41</td>
+                <td>07/25 23:00</td>
+                <td>07/26 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$179.8497</td>
+                <td>$182.1077</td>
+                <td class="text-success">$+2.37</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[41])" style="cursor: pointer;">
+                <td>42</td>
+                <td>07/25 03:00</td>
+                <td>07/25 04:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$189.0889</td>
+                <td>$185.4044</td>
+                <td class="text-danger">$-3.99</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[42])" style="cursor: pointer;">
+                <td>43</td>
+                <td>07/25 00:00</td>
+                <td>07/25 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$188.9888</td>
+                <td>$187.8320</td>
+                <td class="text-danger">$-1.33</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[43])" style="cursor: pointer;">
+                <td>44</td>
+                <td>07/24 18:00</td>
+                <td>07/24 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$186.5664</td>
+                <td>$184.3954</td>
+                <td class="text-danger">$-2.43</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[44])" style="cursor: pointer;">
+                <td>45</td>
+                <td>07/24 14:00</td>
+                <td>07/24 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$184.3642</td>
+                <td>$184.7151</td>
+                <td class="text-success">$+0.26</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[45])" style="cursor: pointer;">
+                <td>46</td>
+                <td>07/24 04:00</td>
+                <td>07/24 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$188.1880</td>
+                <td>$190.8390</td>
+                <td class="text-success">$+2.68</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[46])" style="cursor: pointer;">
+                <td>47</td>
+                <td>07/24 01:00</td>
+                <td>07/24 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$190.4703</td>
+                <td>$187.9119</td>
+                <td class="text-danger">$-2.79</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[47])" style="cursor: pointer;">
+                <td>48</td>
+                <td>07/23 21:00</td>
+                <td>07/23 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$191.8416</td>
+                <td>$188.1117</td>
+                <td class="text-danger">$-3.98</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[48])" style="cursor: pointer;">
+                <td>49</td>
+                <td>07/23 17:00</td>
+                <td>07/23 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$198.2280</td>
+                <td>$194.0258</td>
+                <td class="text-danger">$-4.33</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[49])" style="cursor: pointer;">
+                <td>50</td>
+                <td>07/23 04:00</td>
+                <td>07/23 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$201.7315</td>
+                <td>$205.7241</td>
+                <td class="text-success">$+3.81</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[50])" style="cursor: pointer;">
+                <td>51</td>
+                <td>07/22 21:00</td>
+                <td>07/23 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$202.4723</td>
+                <td>$202.4673</td>
+                <td class="text-danger">$-0.12</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[51])" style="cursor: pointer;">
+                <td>52</td>
+                <td>07/22 17:00</td>
+                <td>07/22 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$199.4092</td>
+                <td>$202.9369</td>
+                <td class="text-success">$+3.39</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[52])" style="cursor: pointer;">
+                <td>53</td>
+                <td>07/22 13:00</td>
+                <td>07/22 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$199.3091</td>
+                <td>$196.8430</td>
+                <td class="text-danger">$-2.58</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[53])" style="cursor: pointer;">
+                <td>54</td>
+                <td>07/22 04:00</td>
+                <td>07/22 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$196.4462</td>
+                <td>$195.6342</td>
+                <td class="text-danger">$-0.94</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[54])" style="cursor: pointer;">
+                <td>55</td>
+                <td>07/21 06:00</td>
+                <td>07/21 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$181.6415</td>
+                <td>$180.1097</td>
+                <td class="text-danger">$-1.79</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[55])" style="cursor: pointer;">
+                <td>56</td>
+                <td>07/21 04:00</td>
+                <td>07/21 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$182.5724</td>
+                <td>$180.3495</td>
+                <td class="text-danger">$-2.54</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[56])" style="cursor: pointer;">
+                <td>57</td>
+                <td>07/20 14:00</td>
+                <td>07/20 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$178.0979</td>
+                <td>$180.5193</td>
+                <td class="text-success">$+2.58</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[57])" style="cursor: pointer;">
+                <td>58</td>
+                <td>07/20 10:00</td>
+                <td>07/20 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$178.1079</td>
+                <td>$177.3725</td>
+                <td class="text-danger">$-0.94</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[58])" style="cursor: pointer;">
+                <td>59</td>
+                <td>07/20 06:00</td>
+                <td>07/20 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$177.1570</td>
+                <td>$177.6821</td>
+                <td class="text-success">$+0.47</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[59])" style="cursor: pointer;">
+                <td>60</td>
+                <td>07/20 02:00</td>
+                <td>07/20 04:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$177.2270</td>
+                <td>$175.7141</td>
+                <td class="text-danger">$-1.82</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[60])" style="cursor: pointer;">
+                <td>61</td>
+                <td>07/19 16:00</td>
+                <td>07/19 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$176.8467</td>
+                <td>$176.3934</td>
+                <td class="text-danger">$-0.63</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[61])" style="cursor: pointer;">
+                <td>62</td>
+                <td>07/19 14:00</td>
+                <td>07/19 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$177.1670</td>
+                <td>$175.8240</td>
+                <td class="text-danger">$-1.63</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[62])" style="cursor: pointer;">
+                <td>63</td>
+                <td>07/19 08:00</td>
+                <td>07/19 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$176.7766</td>
+                <td>$176.0937</td>
+                <td class="text-danger">$-0.89</td>
+                <td>300m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[63])" style="cursor: pointer;">
+                <td>64</td>
+                <td>07/19 04:00</td>
+                <td>07/19 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$176.0859</td>
+                <td>$174.9749</td>
+                <td class="text-danger">$-1.37</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[64])" style="cursor: pointer;">
+                <td>65</td>
+                <td>07/18 23:00</td>
+                <td>07/19 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$178.5784</td>
+                <td>$177.7720</td>
+                <td class="text-danger">$-1.02</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[65])" style="cursor: pointer;">
+                <td>66</td>
+                <td>07/18 19:00</td>
+                <td>07/18 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$180.3902</td>
+                <td>$178.3315</td>
+                <td class="text-danger">$-2.39</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[66])" style="cursor: pointer;">
+                <td>67</td>
+                <td>07/18 04:00</td>
+                <td>07/18 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$175.6755</td>
+                <td>$179.6901</td>
+                <td class="text-success">$+4.42</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[67])" style="cursor: pointer;">
+                <td>68</td>
+                <td>07/18 00:00</td>
+                <td>07/18 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$174.4142</td>
+                <td>$172.8969</td>
+                <td class="text-danger">$-1.85</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[68])" style="cursor: pointer;">
+                <td>69</td>
+                <td>07/17 13:00</td>
+                <td>07/17 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$173.9938</td>
+                <td>$173.4664</td>
+                <td class="text-danger">$-0.72</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[69])" style="cursor: pointer;">
+                <td>70</td>
+                <td>07/17 11:00</td>
+                <td>07/17 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$171.4313</td>
+                <td>$171.7780</td>
+                <td class="text-success">$+0.28</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[70])" style="cursor: pointer;">
+                <td>71</td>
+                <td>07/16 13:00</td>
+                <td>07/16 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$164.2541</td>
+                <td>$167.1027</td>
+                <td class="text-success">$+3.33</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[71])" style="cursor: pointer;">
+                <td>72</td>
+                <td>07/16 11:00</td>
+                <td>07/16 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.6225</td>
+                <td>$162.9569</td>
+                <td class="text-success">$+0.29</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[72])" style="cursor: pointer;">
+                <td>73</td>
+                <td>07/16 04:00</td>
+                <td>07/16 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.0018</td>
+                <td>$163.7860</td>
+                <td class="text-success">$+2.07</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[73])" style="cursor: pointer;">
+                <td>74</td>
+                <td>07/15 22:00</td>
+                <td>07/16 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$160.5704</td>
+                <td>$162.5972</td>
+                <td class="text-success">$+2.39</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[74])" style="cursor: pointer;">
+                <td>75</td>
+                <td>07/15 17:00</td>
+                <td>07/15 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$159.6495</td>
+                <td>$157.5323</td>
+                <td class="text-danger">$-2.76</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[75])" style="cursor: pointer;">
+                <td>76</td>
+                <td>07/15 11:00</td>
+                <td>07/15 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$160.1800</td>
+                <td>$159.3005</td>
+                <td class="text-danger">$-1.21</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[76])" style="cursor: pointer;">
+                <td>77</td>
+                <td>07/15 02:00</td>
+                <td>07/15 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$164.3342</td>
+                <td>$162.6872</td>
+                <td class="text-danger">$-2.11</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[77])" style="cursor: pointer;">
+                <td>78</td>
+                <td>07/14 06:00</td>
+                <td>07/14 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$161.1910</td>
+                <td>$164.7051</td>
+                <td class="text-success">$+4.21</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[78])" style="cursor: pointer;">
+                <td>79</td>
+                <td>07/14 00:00</td>
+                <td>07/14 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.7626</td>
+                <td>$162.2776</td>
+                <td class="text-danger">$-0.71</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[79])" style="cursor: pointer;">
+                <td>80</td>
+                <td>07/13 18:00</td>
+                <td>07/13 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$162.1420</td>
+                <td>$162.5673</td>
+                <td class="text-success">$+0.40</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[80])" style="cursor: pointer;">
+                <td>81</td>
+                <td>07/13 04:00</td>
+                <td>07/13 10:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$160.6805</td>
+                <td>$160.9889</td>
+                <td class="text-success">$+0.26</td>
+                <td>360m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[81])" style="cursor: pointer;">
+                <td>82</td>
+                <td>07/12 17:00</td>
+                <td>07/12 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.0729</td>
+                <td>$161.3485</td>
+                <td class="text-danger">$-2.22</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[82])" style="cursor: pointer;">
+                <td>83</td>
+                <td>07/12 12:00</td>
+                <td>07/12 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.0829</td>
+                <td>$162.9569</td>
+                <td class="text-danger">$-0.27</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[83])" style="cursor: pointer;">
+                <td>84</td>
+                <td>07/12 10:00</td>
+                <td>07/12 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.5434</td>
+                <td>$162.2875</td>
+                <td class="text-danger">$-1.65</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[84])" style="cursor: pointer;">
+                <td>85</td>
+                <td>07/12 05:00</td>
+                <td>07/12 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$161.7216</td>
+                <td>$162.7271</td>
+                <td class="text-success">$+1.12</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[85])" style="cursor: pointer;">
+                <td>86</td>
+                <td>07/12 00:00</td>
+                <td>07/12 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$164.5644</td>
+                <td>$162.4973</td>
+                <td class="text-danger">$-2.62</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[86])" style="cursor: pointer;">
+                <td>87</td>
+                <td>07/11 19:00</td>
+                <td>07/11 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$165.3652</td>
+                <td>$166.4334</td>
+                <td class="text-success">$+1.17</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[87])" style="cursor: pointer;">
+                <td>88</td>
+                <td>07/11 15:00</td>
+                <td>07/11 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$163.9638</td>
+                <td>$163.6262</td>
+                <td class="text-danger">$-0.53</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[88])" style="cursor: pointer;">
+                <td>89</td>
+                <td>07/10 23:00</td>
+                <td>07/11 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.5184</td>
+                <td>$160.6991</td>
+                <td class="text-success">$+2.62</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[89])" style="cursor: pointer;">
+                <td>90</td>
+                <td>07/10 14:00</td>
+                <td>07/10 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$157.9978</td>
+                <td>$157.8620</td>
+                <td class="text-danger">$-0.29</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[90])" style="cursor: pointer;">
+                <td>91</td>
+                <td>07/10 04:00</td>
+                <td>07/10 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$156.8267</td>
+                <td>$156.8230</td>
+                <td class="text-danger">$-0.12</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[91])" style="cursor: pointer;">
+                <td>92</td>
+                <td>07/10 01:00</td>
+                <td>07/10 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$154.7246</td>
+                <td>$157.0628</td>
+                <td class="text-success">$+2.89</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[92])" style="cursor: pointer;">
+                <td>93</td>
+                <td>07/09 16:00</td>
+                <td>07/09 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.9328</td>
+                <td>$153.5263</td>
+                <td class="text-success">$+0.65</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[93])" style="cursor: pointer;">
+                <td>94</td>
+                <td>07/09 09:00</td>
+                <td>07/09 10:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.8917</td>
+                <td>$151.0688</td>
+                <td class="text-danger">$-1.20</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[94])" style="cursor: pointer;">
+                <td>95</td>
+                <td>07/09 05:00</td>
+                <td>07/09 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.6315</td>
+                <td>$151.2586</td>
+                <td class="text-danger">$-0.61</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[95])" style="cursor: pointer;">
+                <td>96</td>
+                <td>07/08 23:00</td>
+                <td>07/09 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.5804</td>
+                <td>$152.5873</td>
+                <td class="text-success">$+2.53</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[96])" style="cursor: pointer;">
+                <td>97</td>
+                <td>07/08 01:00</td>
+                <td>07/08 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.1900</td>
+                <td>$148.7111</td>
+                <td class="text-danger">$-2.08</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[97])" style="cursor: pointer;">
+                <td>98</td>
+                <td>07/07 18:00</td>
+                <td>07/07 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.8727</td>
+                <td>$151.4684</td>
+                <td class="text-danger">$-1.95</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[98])" style="cursor: pointer;">
+                <td>99</td>
+                <td>07/07 14:00</td>
+                <td>07/07 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.4623</td>
+                <td>$151.9579</td>
+                <td class="text-danger">$-0.78</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[99])" style="cursor: pointer;">
+                <td>100</td>
+                <td>07/07 12:00</td>
+                <td>07/07 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.0219</td>
+                <td>$150.9689</td>
+                <td class="text-danger">$-1.50</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[100])" style="cursor: pointer;">
+                <td>101</td>
+                <td>07/07 09:00</td>
+                <td>07/07 10:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.1420</td>
+                <td>$151.6582</td>
+                <td class="text-danger">$-0.75</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[101])" style="cursor: pointer;">
+                <td>102</td>
+                <td>07/07 03:00</td>
+                <td>07/07 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.5214</td>
+                <td>$151.6182</td>
+                <td class="text-success">$+0.01</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[102])" style="cursor: pointer;">
+                <td>103</td>
+                <td>07/06 18:00</td>
+                <td>07/06 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.0579</td>
+                <td>$151.1387</td>
+                <td class="text-success">$+4.02</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[103])" style="cursor: pointer;">
+                <td>104</td>
+                <td>07/06 10:00</td>
+                <td>07/06 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$147.4373</td>
+                <td>$146.9429</td>
+                <td class="text-danger">$-0.79</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[104])" style="cursor: pointer;">
+                <td>105</td>
+                <td>07/06 02:00</td>
+                <td>07/06 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.9468</td>
+                <td>$147.3625</td>
+                <td class="text-success">$+0.44</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[105])" style="cursor: pointer;">
+                <td>106</td>
+                <td>07/06 00:00</td>
+                <td>07/06 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.9468</td>
+                <td>$146.1637</td>
+                <td class="text-danger">$-1.18</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[106])" style="cursor: pointer;">
+                <td>107</td>
+                <td>07/05 16:00</td>
+                <td>07/05 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$147.9978</td>
+                <td>$147.7321</td>
+                <td class="text-danger">$-0.48</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[107])" style="cursor: pointer;">
+                <td>108</td>
+                <td>07/05 10:00</td>
+                <td>07/05 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$147.8277</td>
+                <td>$147.1027</td>
+                <td class="text-danger">$-1.10</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[108])" style="cursor: pointer;">
+                <td>109</td>
+                <td>07/05 07:00</td>
+                <td>07/05 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.3582</td>
+                <td>$147.8120</td>
+                <td class="text-danger">$-0.85</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[109])" style="cursor: pointer;">
+                <td>110</td>
+                <td>07/04 19:00</td>
+                <td>07/04 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.6004</td>
+                <td>$148.3015</td>
+                <td class="text-danger">$-3.16</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[110])" style="cursor: pointer;">
+                <td>111</td>
+                <td>07/04 16:00</td>
+                <td>07/04 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.9308</td>
+                <td>$149.8800</td>
+                <td class="text-danger">$-1.51</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[111])" style="cursor: pointer;">
+                <td>112</td>
+                <td>07/04 11:00</td>
+                <td>07/04 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.6515</td>
+                <td>$152.1976</td>
+                <td class="text-success">$+0.60</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[112])" style="cursor: pointer;">
+                <td>113</td>
+                <td>07/04 07:00</td>
+                <td>07/04 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.4823</td>
+                <td>$151.0588</td>
+                <td class="text-danger">$-1.98</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[113])" style="cursor: pointer;">
+                <td>114</td>
+                <td>07/03 20:00</td>
+                <td>07/03 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$154.6345</td>
+                <td>$152.0178</td>
+                <td class="text-danger">$-3.49</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[114])" style="cursor: pointer;">
+                <td>115</td>
+                <td>07/02 03:00</td>
+                <td>07/02 10:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.4963</td>
+                <td>$148.6412</td>
+                <td class="text-success">$+2.80</td>
+                <td>420m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[115])" style="cursor: pointer;">
+                <td>116</td>
+                <td>07/01 23:00</td>
+                <td>07/02 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.4183</td>
+                <td>$145.7441</td>
+                <td class="text-danger">$-3.71</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[116])" style="cursor: pointer;">
+                <td>117</td>
+                <td>07/01 02:00</td>
+                <td>07/01 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$157.8877</td>
+                <td>$156.3635</td>
+                <td class="text-danger">$-2.04</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[117])" style="cursor: pointer;">
+                <td>118</td>
+                <td>06/30 20:00</td>
+                <td>06/30 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.9608</td>
+                <td>$157.6322</td>
+                <td class="text-success">$+8.68</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[118])" style="cursor: pointer;">
+                <td>119</td>
+                <td>06/30 04:00</td>
+                <td>06/30 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.7316</td>
+                <td>$152.3775</td>
+                <td class="text-success">$+0.73</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[119])" style="cursor: pointer;">
+                <td>120</td>
+                <td>06/30 00:00</td>
+                <td>06/30 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.4913</td>
+                <td>$150.9789</td>
+                <td class="text-danger">$-0.79</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[120])" style="cursor: pointer;">
+                <td>121</td>
+                <td>06/29 14:00</td>
+                <td>06/29 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.4103</td>
+                <td>$151.0688</td>
+                <td class="text-success">$+0.75</td>
+                <td>420m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[121])" style="cursor: pointer;">
+                <td>122</td>
+                <td>06/29 04:00</td>
+                <td>06/29 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$151.1410</td>
+                <td>$150.4894</td>
+                <td class="text-danger">$-0.98</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[122])" style="cursor: pointer;">
+                <td>123</td>
+                <td>06/28 08:00</td>
+                <td>06/28 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$142.6625</td>
+                <td>$144.6352</td>
+                <td class="text-success">$+2.63</td>
+                <td>300m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[123])" style="cursor: pointer;">
+                <td>124</td>
+                <td>06/28 02:00</td>
+                <td>06/28 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$141.8317</td>
+                <td>$142.4574</td>
+                <td class="text-success">$+0.76</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[124])" style="cursor: pointer;">
+                <td>125</td>
+                <td>06/27 15:00</td>
+                <td>06/27 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$142.3022</td>
+                <td>$141.1287</td>
+                <td class="text-danger">$-1.76</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[125])" style="cursor: pointer;">
+                <td>126</td>
+                <td>06/27 13:00</td>
+                <td>06/27 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$141.3412</td>
+                <td>$140.1397</td>
+                <td class="text-danger">$-1.81</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[126])" style="cursor: pointer;">
+                <td>127</td>
+                <td>06/27 08:00</td>
+                <td>06/27 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$139.5094</td>
+                <td>$140.4694</td>
+                <td class="text-success">$+1.25</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[127])" style="cursor: pointer;">
+                <td>128</td>
+                <td>06/26 21:00</td>
+                <td>06/26 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$143.1730</td>
+                <td>$142.0878</td>
+                <td class="text-danger">$-1.63</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[128])" style="cursor: pointer;">
+                <td>129</td>
+                <td>06/26 14:00</td>
+                <td>06/26 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.2451</td>
+                <td>$144.6452</td>
+                <td class="text-danger">$-0.94</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[129])" style="cursor: pointer;">
+                <td>130</td>
+                <td>06/26 06:00</td>
+                <td>06/26 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$143.6235</td>
+                <td>$145.9939</td>
+                <td class="text-success">$+3.17</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[130])" style="cursor: pointer;">
+                <td>131</td>
+                <td>06/26 02:00</td>
+                <td>06/26 04:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.7746</td>
+                <td>$144.1557</td>
+                <td class="text-danger">$-0.97</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[131])" style="cursor: pointer;">
+                <td>132</td>
+                <td>06/26 00:00</td>
+                <td>06/26 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$143.9438</td>
+                <td>$143.0868</td>
+                <td class="text-danger">$-1.31</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[132])" style="cursor: pointer;">
+                <td>133</td>
+                <td>06/25 18:00</td>
+                <td>06/25 21:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.3262</td>
+                <td>$145.4344</td>
+                <td class="text-danger">$-1.33</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[133])" style="cursor: pointer;">
+                <td>134</td>
+                <td>06/25 03:00</td>
+                <td>06/25 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.1150</td>
+                <td>$144.7651</td>
+                <td class="text-danger">$-0.60</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[134])" style="cursor: pointer;">
+                <td>135</td>
+                <td>06/24 21:00</td>
+                <td>06/24 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.0449</td>
+                <td>$144.0958</td>
+                <td class="text-danger">$-1.42</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[135])" style="cursor: pointer;">
+                <td>136</td>
+                <td>06/24 18:00</td>
+                <td>06/24 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.6345</td>
+                <td>$144.2256</td>
+                <td class="text-danger">$-0.68</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[136])" style="cursor: pointer;">
+                <td>137</td>
+                <td>06/24 10:00</td>
+                <td>06/24 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$143.2931</td>
+                <td>$145.2246</td>
+                <td class="text-success">$+2.56</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[137])" style="cursor: pointer;">
+                <td>138</td>
+                <td>06/23 03:00</td>
+                <td>06/23 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$129.6095</td>
+                <td>$131.9679</td>
+                <td class="text-success">$+3.50</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[138])" style="cursor: pointer;">
+                <td>139</td>
+                <td>06/22 23:00</td>
+                <td>06/23 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$129.8797</td>
+                <td>$129.2406</td>
+                <td class="text-danger">$-1.10</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[139])" style="cursor: pointer;">
+                <td>140</td>
+                <td>06/22 21:00</td>
+                <td>06/22 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$129.9398</td>
+                <td>$128.3815</td>
+                <td class="text-danger">$-2.51</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[140])" style="cursor: pointer;">
+                <td>141</td>
+                <td>06/22 19:00</td>
+                <td>06/22 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$133.5734</td>
+                <td>$128.5114</td>
+                <td class="text-danger">$-7.67</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[141])" style="cursor: pointer;">
+                <td>142</td>
+                <td>06/22 15:00</td>
+                <td>06/22 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$134.9748</td>
+                <td>$132.1178</td>
+                <td class="text-danger">$-4.34</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[142])" style="cursor: pointer;">
+                <td>143</td>
+                <td>06/22 10:00</td>
+                <td>06/22 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$135.1650</td>
+                <td>$135.6942</td>
+                <td class="text-success">$+0.66</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[143])" style="cursor: pointer;">
+                <td>144</td>
+                <td>06/22 03:00</td>
+                <td>06/22 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$138.4883</td>
+                <td>$134.8350</td>
+                <td class="text-danger">$-5.38</td>
+                <td>300m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[144])" style="cursor: pointer;">
+                <td>145</td>
+                <td>06/21 22:00</td>
+                <td>06/21 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$140.3602</td>
+                <td>$139.9100</td>
+                <td class="text-danger">$-0.76</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[145])" style="cursor: pointer;">
+                <td>146</td>
+                <td>06/21 06:00</td>
+                <td>06/21 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$140.1400</td>
+                <td>$142.0079</td>
+                <td class="text-success">$+2.54</td>
+                <td>660m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[146])" style="cursor: pointer;">
+                <td>147</td>
+                <td>06/21 00:00</td>
+                <td>06/21 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$138.3983</td>
+                <td>$140.7691</td>
+                <td class="text-success">$+3.30</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[147])" style="cursor: pointer;">
+                <td>148</td>
+                <td>06/20 12:00</td>
+                <td>06/20 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.3952</td>
+                <td>$147.2626</td>
+                <td class="text-success">$+2.44</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[148])" style="cursor: pointer;">
+                <td>149</td>
+                <td>06/19 15:00</td>
+                <td>06/19 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.2351</td>
+                <td>$145.8740</td>
+                <td class="text-success">$+0.76</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[149])" style="cursor: pointer;">
+                <td>150</td>
+                <td>06/19 10:00</td>
+                <td>06/19 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.6765</td>
+                <td>$145.7041</td>
+                <td class="text-danger">$-1.44</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[150])" style="cursor: pointer;">
+                <td>151</td>
+                <td>06/19 07:00</td>
+                <td>06/19 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.9968</td>
+                <td>$145.4744</td>
+                <td class="text-danger">$-2.19</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[151])" style="cursor: pointer;">
+                <td>152</td>
+                <td>06/19 02:00</td>
+                <td>06/19 03:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.7946</td>
+                <td>$147.2326</td>
+                <td class="text-success">$+3.24</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[152])" style="cursor: pointer;">
+                <td>153</td>
+                <td>06/19 00:00</td>
+                <td>06/19 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.6555</td>
+                <td>$143.7062</td>
+                <td class="text-danger">$-2.79</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[153])" style="cursor: pointer;">
+                <td>154</td>
+                <td>06/18 20:00</td>
+                <td>06/18 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.3552</td>
+                <td>$144.6053</td>
+                <td class="text-danger">$-1.15</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[154])" style="cursor: pointer;">
+                <td>155</td>
+                <td>06/18 18:00</td>
+                <td>06/18 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.5664</td>
+                <td>$144.9449</td>
+                <td class="text-danger">$-2.33</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[155])" style="cursor: pointer;">
+                <td>156</td>
+                <td>06/18 14:00</td>
+                <td>06/18 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.0679</td>
+                <td>$147.4524</td>
+                <td class="text-danger">$-0.95</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[156])" style="cursor: pointer;">
+                <td>157</td>
+                <td>06/18 10:00</td>
+                <td>06/18 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.4183</td>
+                <td>$148.0718</td>
+                <td class="text-danger">$-0.59</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[157])" style="cursor: pointer;">
+                <td>158</td>
+                <td>06/18 06:00</td>
+                <td>06/18 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$147.6475</td>
+                <td>$147.3425</td>
+                <td class="text-danger">$-0.53</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[158])" style="cursor: pointer;">
+                <td>159</td>
+                <td>06/17 12:00</td>
+                <td>06/17 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$153.6835</td>
+                <td>$152.8370</td>
+                <td class="text-danger">$-1.22</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[159])" style="cursor: pointer;">
+                <td>160</td>
+                <td>06/17 07:00</td>
+                <td>06/17 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.0419</td>
+                <td>$152.8070</td>
+                <td class="text-success">$+0.88</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[160])" style="cursor: pointer;">
+                <td>161</td>
+                <td>06/16 23:00</td>
+                <td>06/17 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$157.6074</td>
+                <td>$157.5623</td>
+                <td class="text-danger">$-0.18</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[161])" style="cursor: pointer;">
+                <td>162</td>
+                <td>06/16 04:00</td>
+                <td>06/16 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.6205</td>
+                <td>$152.7471</td>
+                <td class="text-success">$+2.70</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[162])" style="cursor: pointer;">
+                <td>163</td>
+                <td>06/15 17:00</td>
+                <td>06/15 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.8957</td>
+                <td>$148.1317</td>
+                <td class="text-success">$+2.94</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[163])" style="cursor: pointer;">
+                <td>164</td>
+                <td>06/15 03:00</td>
+                <td>06/15 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$142.9528</td>
+                <td>$145.3645</td>
+                <td class="text-success">$+3.24</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[164])" style="cursor: pointer;">
+                <td>165</td>
+                <td>06/15 00:00</td>
+                <td>06/15 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.5544</td>
+                <td>$143.2666</td>
+                <td class="text-danger">$-1.90</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[165])" style="cursor: pointer;">
+                <td>166</td>
+                <td>06/14 22:00</td>
+                <td>06/14 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.6145</td>
+                <td>$143.1567</td>
+                <td class="text-danger">$-2.13</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[166])" style="cursor: pointer;">
+                <td>167</td>
+                <td>06/14 18:00</td>
+                <td>06/14 19:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.9158</td>
+                <td>$145.3045</td>
+                <td class="text-danger">$-0.96</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[167])" style="cursor: pointer;">
+                <td>168</td>
+                <td>06/14 12:00</td>
+                <td>06/14 13:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$146.9268</td>
+                <td>$146.0038</td>
+                <td class="text-danger">$-1.37</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[168])" style="cursor: pointer;">
+                <td>169</td>
+                <td>06/14 03:00</td>
+                <td>06/14 07:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$147.3872</td>
+                <td>$147.6022</td>
+                <td class="text-success">$+0.17</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[169])" style="cursor: pointer;">
+                <td>170</td>
+                <td>06/13 13:00</td>
+                <td>06/13 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.0049</td>
+                <td>$146.9429</td>
+                <td class="text-success">$+2.55</td>
+                <td>540m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[170])" style="cursor: pointer;">
+                <td>171</td>
+                <td>06/12 23:00</td>
+                <td>06/13 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.4082</td>
+                <td>$157.4924</td>
+                <td class="text-danger">$-1.27</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[171])" style="cursor: pointer;">
+                <td>172</td>
+                <td>06/12 19:00</td>
+                <td>06/12 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.7986</td>
+                <td>$156.8030</td>
+                <td class="text-danger">$-2.63</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[172])" style="cursor: pointer;">
+                <td>173</td>
+                <td>06/11 22:00</td>
+                <td>06/11 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$167.3572</td>
+                <td>$166.4234</td>
+                <td class="text-danger">$-1.23</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[173])" style="cursor: pointer;">
+                <td>174</td>
+                <td>06/11 00:00</td>
+                <td>06/11 01:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.3282</td>
+                <td>$163.7661</td>
+                <td class="text-success">$+6.73</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[174])" style="cursor: pointer;">
+                <td>175</td>
+                <td>06/10 22:00</td>
+                <td>06/10 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.1079</td>
+                <td>$156.9429</td>
+                <td class="text-danger">$-1.59</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[175])" style="cursor: pointer;">
+                <td>176</td>
+                <td>06/10 18:00</td>
+                <td>06/10 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$160.9308</td>
+                <td>$158.8810</td>
+                <td class="text-danger">$-2.66</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[176])" style="cursor: pointer;">
+                <td>177</td>
+                <td>06/10 16:00</td>
+                <td>06/10 17:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$159.0489</td>
+                <td>$157.9119</td>
+                <td class="text-danger">$-1.55</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[177])" style="cursor: pointer;">
+                <td>178</td>
+                <td>06/10 14:00</td>
+                <td>06/10 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$158.5484</td>
+                <td>$157.5323</td>
+                <td class="text-danger">$-1.40</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[178])" style="cursor: pointer;">
+                <td>179</td>
+                <td>06/09 22:00</td>
+                <td>06/10 02:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$155.0749</td>
+                <td>$155.4844</td>
+                <td class="text-success">$+0.41</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[179])" style="cursor: pointer;">
+                <td>180</td>
+                <td>06/09 13:00</td>
+                <td>06/09 16:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.9408</td>
+                <td>$153.1967</td>
+                <td class="text-success">$+2.86</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[180])" style="cursor: pointer;">
+                <td>181</td>
+                <td>06/08 11:00</td>
+                <td>06/08 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.1100</td>
+                <td>$149.6202</td>
+                <td class="text-danger">$-0.77</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[181])" style="cursor: pointer;">
+                <td>182</td>
+                <td>06/08 08:00</td>
+                <td>06/08 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.3402</td>
+                <td>$149.5203</td>
+                <td class="text-danger">$-1.21</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[182])" style="cursor: pointer;">
+                <td>183</td>
+                <td>06/08 03:00</td>
+                <td>06/08 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.9108</td>
+                <td>$149.8000</td>
+                <td class="text-danger">$-1.59</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[183])" style="cursor: pointer;">
+                <td>184</td>
+                <td>06/07 09:00</td>
+                <td>06/07 12:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.3682</td>
+                <td>$150.6492</td>
+                <td class="text-success">$+2.95</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[184])" style="cursor: pointer;">
+                <td>185</td>
+                <td>06/07 07:00</td>
+                <td>06/07 08:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$148.7586</td>
+                <td>$147.5024</td>
+                <td class="text-danger">$-1.81</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[185])" style="cursor: pointer;">
+                <td>186</td>
+                <td>06/07 03:00</td>
+                <td>06/07 04:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$149.3892</td>
+                <td>$148.9709</td>
+                <td class="text-danger">$-0.68</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[186])" style="cursor: pointer;">
+                <td>187</td>
+                <td>06/06 07:00</td>
+                <td>06/06 11:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$145.4853</td>
+                <td>$147.3025</td>
+                <td class="text-success">$+2.37</td>
+                <td>240m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[187])" style="cursor: pointer;">
+                <td>188</td>
+                <td>06/06 04:00</td>
+                <td>06/06 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$144.3442</td>
+                <td>$144.0558</td>
+                <td class="text-danger">$-0.52</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[188])" style="cursor: pointer;">
+                <td>189</td>
+                <td>06/05 22:00</td>
+                <td>06/05 23:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$150.9508</td>
+                <td>$148.4015</td>
+                <td class="text-danger">$-3.49</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[189])" style="cursor: pointer;">
+                <td>190</td>
+                <td>06/05 18:00</td>
+                <td>06/05 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.4523</td>
+                <td>$150.0998</td>
+                <td class="text-danger">$-3.20</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[190])" style="cursor: pointer;">
+                <td>191</td>
+                <td>06/05 04:00</td>
+                <td>06/05 05:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$155.1550</td>
+                <td>$153.3365</td>
+                <td class="text-danger">$-2.46</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[191])" style="cursor: pointer;">
+                <td>192</td>
+                <td>06/04 21:00</td>
+                <td>06/05 00:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$156.9067</td>
+                <td>$155.8340</td>
+                <td class="text-danger">$-1.49</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[192])" style="cursor: pointer;">
+                <td>193</td>
+                <td>06/04 10:00</td>
+                <td>06/04 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$156.6565</td>
+                <td>$155.6542</td>
+                <td class="text-danger">$-1.40</td>
+                <td>480m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[193])" style="cursor: pointer;">
+                <td>194</td>
+                <td>06/04 08:00</td>
+                <td>06/04 09:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$156.8467</td>
+                <td>$155.7841</td>
+                <td class="text-danger">$-1.47</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[194])" style="cursor: pointer;">
+                <td>195</td>
+                <td>06/03 16:00</td>
+                <td>06/03 18:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$160.0199</td>
+                <td>$160.3595</td>
+                <td class="text-success">$+0.30</td>
+                <td>120m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[195])" style="cursor: pointer;">
+                <td>196</td>
+                <td>06/03 12:00</td>
+                <td>06/03 15:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$159.5694</td>
+                <td>$159.0408</td>
+                <td class="text-danger">$-0.78</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[196])" style="cursor: pointer;">
+                <td>197</td>
+                <td>06/03 03:00</td>
+                <td>06/03 06:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$154.3842</td>
+                <td>$156.5933</td>
+                <td class="text-success">$+2.74</td>
+                <td>180m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[197])" style="cursor: pointer;">
+                <td>198</td>
+                <td>06/02 19:00</td>
+                <td>06/02 20:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$154.2841</td>
+                <td>$151.9779</td>
+                <td class="text-danger">$-3.11</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[198])" style="cursor: pointer;">
+                <td>199</td>
+                <td>06/02 13:00</td>
+                <td>06/02 14:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$155.8157</td>
+                <td>$155.2945</td>
+                <td class="text-danger">$-0.79</td>
+                <td>60m</td>
+            </tr>
+            
+            <tr onclick="showTradeDetails(tradeData[199])" style="cursor: pointer;">
+                <td>200</td>
+                <td>06/01 20:00</td>
+                <td>06/01 22:00</td>
+                <td><span class="badge badge-long">LONG</span></td>
+                <td>$152.0519</td>
+                <td>$153.9359</td>
+                <td class="text-success">$+2.36</td>
+                <td>120m</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Modal for trade details -->
+        <div id="tradeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeModal()">&times;</span>
+                    <h2>Trade Details</h2>
+                </div>
+                <div class="modal-body" id="tradeModalBody">
+                    <!-- Trade details will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        // Store trade data for modal access
+        var tradeData = [{"entry_time": "2025-08-08T00:00:00", "exit_time": "2025-08-08T02:00:00", "direction": "LONG", "entry_price": 169.49933, "exit_price": 171.46836, "quantity": 1.1670528567019542, "pnl": 2.177894502808654, "commission": 0.12006758362319944, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.31 SOL"}, {"entry_time": "2025-08-07T12:00:00", "exit_time": "2025-08-07T15:00:00", "direction": "LONG", "entry_price": 168.82865999999999, "exit_price": 169.14069, "quantity": 1.17167379765999, "pnl": 0.24669074632919305, "commission": 0.11890662875467864, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=69.7 crosses D=78.8 down, P/L: +0.65 SOL"}, {"entry_time": "2025-08-07T05:00:00", "exit_time": "2025-08-07T06:00:00", "direction": "LONG", "entry_price": 168.45828999999998, "exit_price": 167.84198999999998, "quantity": 1.1743638837371155, "pnl": -0.8420250042855185, "commission": 0.11826454273833964, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=74.7 crosses D=75.6 down, P/L: -0.28 SOL"}, {"entry_time": "2025-08-06T16:00:00", "exit_time": "2025-08-06T17:00:00", "direction": "LONG", "entry_price": 164.0639, "exit_price": 163.37645999999998, "quantity": 1.205948722146121, "pnl": -0.9472315694515947, "commission": 0.11821417989945408, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=67.9 crosses D=68.3 down, P/L: -0.36 SOL"}, {"entry_time": "2025-08-06T11:00:00", "exit_time": "2025-08-06T15:00:00", "direction": "LONG", "entry_price": 162.53237, "exit_price": 163.05678, "quantity": 1.2172629956054124, "pnl": 0.5192550968395119, "commission": 0.11908979068594362, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=59.3 crosses D=71.2 down, P/L: +0.85 SOL"}, {"entry_time": "2025-08-06T09:00:00", "exit_time": "2025-08-06T10:00:00", "direction": "LONG", "entry_price": 162.75259, "exit_price": 161.60823000000002, "quantity": 1.2158159730003446, "pnl": -1.5092226873040353, "commission": 0.1178915204413881, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=11.2 crosses D=16.2 down, P/L: -0.82 SOL"}, {"entry_time": "2025-08-05T16:00:00", "exit_time": "2025-08-05T17:00:00", "direction": "LONG", "entry_price": 168.98881999999998, "exit_price": 170.79903, "quantity": 1.170725891547482, "pnl": 1.9992844081348646, "commission": 0.11997530800331707, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.15 SOL"}, {"entry_time": "2025-08-05T12:00:00", "exit_time": "2025-08-05T13:00:00", "direction": "LONG", "entry_price": 168.47831, "exit_price": 167.45238, "quantity": 1.1744444688198985, "pnl": -1.3228959267854212, "commission": 0.11799811288903667, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=54.4 crosses D=58.8 down, P/L: -0.69 SOL"}, {"entry_time": "2025-08-05T03:00:00", "exit_time": "2025-08-05T05:00:00", "direction": "LONG", "entry_price": 167.34717999999998, "exit_price": 169.2306, "quantity": 1.182145192905526, "pnl": 2.1064428150526497, "commission": 0.12003308416951075, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.22 SOL"}, {"entry_time": "2025-08-04T19:00:00", "exit_time": "2025-08-04T21:00:00", "direction": "LONG", "entry_price": 163.77361, "exit_price": 164.76507, "quantity": 1.2078226524033724, "pnl": 1.0781036566293727, "commission": 0.11940419032249638, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=66.6 crosses D=74.2 down, P/L: +1.32 SOL"}, {"entry_time": "2025-08-04T14:00:00", "exit_time": "2025-08-04T16:00:00", "direction": "LONG", "entry_price": 163.09293, "exit_price": 162.20763, "quantity": 1.213024310754443, "pnl": -1.1919475014588263, "commission": 0.11805707914791701, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=41.2 crosses D=55.7 down, P/L: -0.56 SOL"}, {"entry_time": "2025-08-04T04:00:00", "exit_time": "2025-08-04T06:00:00", "direction": "LONG", "entry_price": 162.07190999999997, "exit_price": 161.70813, "quantity": 1.2207501827227063, "pnl": -0.5625276390179691, "commission": 0.11844313754714829, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=57.9 crosses D=61.8 down, P/L: -0.04 SOL"}, {"entry_time": "2025-08-03T22:00:00", "exit_time": "2025-08-04T00:00:00", "direction": "LONG", "entry_price": 162.15198999999998, "exit_price": 161.89794, "quantity": 1.2202148033113425, "pnl": -0.42852572858938676, "commission": 0.1185301578081669, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=74.0 crosses D=75.0 down, P/L: +0.07 SOL"}, {"entry_time": "2025-08-03T07:00:00", "exit_time": "2025-08-03T16:00:00", "direction": "LONG", "entry_price": 159.76961, "exit_price": 160.90893, "quantity": 1.2382630716784235, "pnl": 1.291229331271286, "commission": 0.11954855155337304, "duration_minutes": 540, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=88.7 crosses D=92.3 down, P/L: +1.46 SOL"}, {"entry_time": "2025-08-02T23:00:00", "exit_time": "2025-08-03T00:00:00", "direction": "LONG", "entry_price": 161.60143999999997, "exit_price": 159.03081, "quantity": 1.2246455364557216, "pnl": -3.2649643783543927, "commission": 0.11685382297526276, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=14.5 crosses D=17.8 down, P/L: -2.25 SOL"}, {"entry_time": "2025-08-02T14:00:00", "exit_time": "2025-08-02T20:00:00", "direction": "LONG", "entry_price": 164.52436, "exit_price": 164.24559, "quantity": 1.2029582434629518, "pnl": -0.4538970213959391, "commission": 0.11854835186576168, "duration_minutes": 360, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=77.1 crosses D=81.4 down, P/L: +0.05 SOL"}, {"entry_time": "2025-08-02T11:00:00", "exit_time": "2025-08-02T12:00:00", "direction": "LONG", "entry_price": 165.22505999999998, "exit_price": 164.44539, "quantity": 1.1979983866643216, "pnl": -1.0522465892791808, "commission": 0.1182031871486311, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=52.2 crosses D=52.6 down, P/L: -0.45 SOL"}, {"entry_time": "2025-08-02T06:00:00", "exit_time": "2025-08-02T08:00:00", "direction": "LONG", "entry_price": 162.78261999999998, "exit_price": 164.49534, "quantity": 1.215747020647715, "pnl": 1.9622434054945175, "commission": 0.11999083170925973, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.04 SOL"}, {"entry_time": "2025-08-02T02:00:00", "exit_time": "2025-08-02T03:00:00", "direction": "LONG", "entry_price": 166.5664, "exit_price": 163.53629999999998, "quantity": 1.188590403086409, "pnl": -3.718174386433889, "commission": 0.11662660604175591, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=24.3 crosses D=26.8 down, P/L: -2.70 SOL"}, {"entry_time": "2025-08-01T21:00:00", "exit_time": "2025-08-01T23:00:00", "direction": "LONG", "entry_price": 169.47930999999997, "exit_price": 166.66317, "quantity": 1.168577779746806, "pnl": -3.407733954954624, "commission": 0.11685532629849868, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=31.8 crosses D=49.7 down, P/L: -2.48 SOL"}, {"entry_time": "2025-08-01T17:00:00", "exit_time": "2025-08-01T20:00:00", "direction": "LONG", "entry_price": 168.71855, "exit_price": 165.38445000000002, "quantity": 1.1743389880209782, "pnl": -4.031894064549162, "commission": 0.11653044458844365, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=11.2 crosses D=29.5 down, P/L: -3.00 SOL"}, {"entry_time": "2025-08-01T07:00:00", "exit_time": "2025-08-01T11:00:00", "direction": "LONG", "entry_price": 170.39021999999997, "exit_price": 169.39044, "quantity": 1.162982052003902, "pnl": -1.2809250208530394, "commission": 0.11819882490062632, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=18.1 crosses D=26.9 down, P/L: -0.66 SOL"}, {"entry_time": "2025-07-31T22:00:00", "exit_time": "2025-08-01T00:00:00", "direction": "LONG", "entry_price": 177.44727, "exit_price": 177.04278, "quantity": 1.1168081268300454, "pnl": -0.5703714085218462, "commission": 0.11863368930035027, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=27.7 crosses D=36.7 down, P/L: -0.05 SOL"}, {"entry_time": "2025-07-31T02:00:00", "exit_time": "2025-07-31T07:00:00", "direction": "LONG", "entry_price": 176.20602999999997, "exit_price": 179.19063, "quantity": 1.1243215409814649, "pnl": 3.2347693400626887, "commission": 0.1208807311506237, "duration_minutes": 300, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.34 SOL"}, {"entry_time": "2025-07-31T00:00:00", "exit_time": "2025-07-31T01:00:00", "direction": "LONG", "entry_price": 179.49931999999998, "exit_price": 175.65417000000002, "quantity": 1.104192800361988, "pnl": -4.362160588232392, "commission": 0.11637364192053642, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=3.1 crosses D=29.7 down, P/L: -3.49 SOL"}, {"entry_time": "2025-07-30T12:00:00", "exit_time": "2025-07-30T14:00:00", "direction": "LONG", "entry_price": 181.12094, "exit_price": 180.53928, "quantity": 1.09440320843376, "pnl": -0.7551202305857728, "commission": 0.11854966036819256, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=53.4 crosses D=69.7 down, P/L: -0.22 SOL"}, {"entry_time": "2025-07-30T08:00:00", "exit_time": "2025-07-30T11:00:00", "direction": "LONG", "entry_price": 181.47128999999998, "exit_price": 180.00981, "quantity": 1.092492426496428, "pnl": -1.71465144394803, "commission": 0.11799561247203656, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=48.7 crosses D=58.6 down, P/L: -1.10 SOL"}, {"entry_time": "2025-07-30T04:00:00", "exit_time": "2025-07-30T07:00:00", "direction": "LONG", "entry_price": 181.34115999999997, "exit_price": 179.93988000000002, "quantity": 1.0934715304216682, "pnl": -1.6503152677297233, "commission": 0.1180554815804948, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=28.8 crosses D=42.0 down, P/L: -1.04 SOL"}, {"entry_time": "2025-07-29T23:00:00", "exit_time": "2025-07-30T02:00:00", "direction": "LONG", "entry_price": 180.19000999999997, "exit_price": 180.82899, "quantity": 1.100405623030888, "pnl": 0.5837460425625144, "commission": 0.11939114244179773, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=34.0 crosses D=37.0 down, P/L: +1.00 SOL"}, {"entry_time": "2025-07-29T19:00:00", "exit_time": "2025-07-29T20:00:00", "direction": "LONG", "entry_price": 183.96377999999999, "exit_price": 182.4174, "quantity": 1.0780392806958772, "pnl": -1.7850502564919368, "commission": 0.11799187360944724, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=34.8 crosses D=42.5 down, P/L: -1.18 SOL"}, {"entry_time": "2025-07-28T19:00:00", "exit_time": "2025-07-28T20:00:00", "direction": "LONG", "entry_price": 193.08288999999996, "exit_price": 189.99981, "quantity": 1.0274771641128424, "pnl": -3.2849265747094556, "commission": 0.11713227957646732, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=33.5 crosses D=54.3 down, P/L: -2.70 SOL"}, {"entry_time": "2025-07-28T16:00:00", "exit_time": "2025-07-28T17:00:00", "direction": "LONG", "entry_price": 193.32312999999996, "exit_price": 192.09770999999998, "quantity": 1.0263550022086496, "pnl": -1.3760122141493043, "commission": 0.1182962673427959, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=65.8 crosses D=70.0 down, P/L: -0.84 SOL"}, {"entry_time": "2025-07-28T07:00:00", "exit_time": "2025-07-28T08:00:00", "direction": "LONG", "entry_price": 189.89971, "exit_price": 188.08173000000002, "quantity": 1.045082694276912, "pnl": -2.017876013221114, "commission": 0.11793657667959763, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=54.7 crosses D=65.4 down, P/L: -1.44 SOL"}, {"entry_time": "2025-07-28T04:00:00", "exit_time": "2025-07-28T06:00:00", "direction": "LONG", "entry_price": 188.15796999999998, "exit_price": 188.45136, "quantity": 1.054749252728714, "pnl": 0.19019152457666882, "commission": 0.11926135868142589, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=64.5 crosses D=65.9 down, P/L: +0.67 SOL"}, {"entry_time": "2025-07-27T22:00:00", "exit_time": "2025-07-28T02:00:00", "direction": "LONG", "entry_price": 186.62643999999997, "exit_price": 186.78303, "quantity": 1.0634126274762161, "pnl": 0.04734332371636346, "commission": 0.11917645962016132, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=44.2 crosses D=60.9 down, P/L: +0.53 SOL"}, {"entry_time": "2025-07-27T17:00:00", "exit_time": "2025-07-27T18:00:00", "direction": "LONG", "entry_price": 187.87768999999997, "exit_price": 186.85296, "quantity": 1.0564709177029308, "pnl": -1.2010402743737252, "commission": 0.1184428308760254, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=63.6 crosses D=65.5 down, P/L: -0.65 SOL"}, {"entry_time": "2025-07-27T07:00:00", "exit_time": "2025-07-27T12:00:00", "direction": "LONG", "entry_price": 185.6855, "exit_price": 187.68213, "quantity": 1.0687394891709014, "pnl": 2.013527344017684, "commission": 0.12034998224562403, "duration_minutes": 300, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.37 SOL"}, {"entry_time": "2025-07-27T04:00:00", "exit_time": "2025-07-27T05:00:00", "direction": "LONG", "entry_price": 186.57638999999998, "exit_price": 184.92489, "quantity": 1.0638500833074709, "pnl": -1.8749878283615315, "commission": 0.11803941577927492, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=6.0 crosses D=17.0 down, P/L: -1.28 SOL"}, {"entry_time": "2025-07-27T01:00:00", "exit_time": "2025-07-27T03:00:00", "direction": "LONG", "entry_price": 186.24605999999997, "exit_price": 185.77404, "quantity": 1.0658165216543416, "pnl": -0.6218873392271221, "commission": 0.11880062467588472, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=18.0 crosses D=22.3 down, P/L: -0.10 SOL"}, {"entry_time": "2025-07-26T22:00:00", "exit_time": "2025-07-26T23:00:00", "direction": "LONG", "entry_price": 187.80762, "exit_price": 186.7131, "quantity": 1.0571031097415138, "pnl": -1.2754454948579566, "commission": 0.11842499918368693, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=29.7 crosses D=41.5 down, P/L: -0.72 SOL"}, {"entry_time": "2025-07-25T23:00:00", "exit_time": "2025-07-26T01:00:00", "direction": "LONG", "entry_price": 179.84966999999997, "exit_price": 182.10771, "quantity": 1.1036271128191393, "pnl": 2.3714467621045108, "commission": 0.12058740372564306, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.62 SOL"}, {"entry_time": "2025-07-25T03:00:00", "exit_time": "2025-07-25T04:00:00", "direction": "LONG", "entry_price": 189.0889, "exit_price": 185.40441, "quantity": 1.0501360766721968, "pnl": -3.9860357889669977, "commission": 0.11681991582907404, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=30.1 crosses D=58.8 down, P/L: -3.31 SOL"}, {"entry_time": "2025-07-25T00:00:00", "exit_time": "2025-07-25T02:00:00", "direction": "LONG", "entry_price": 188.9888, "exit_price": 187.83198000000002, "quantity": 1.0508460826845567, "pnl": -1.3340692656026603, "commission": 0.1184295002315304, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=69.6 crosses D=75.0 down, P/L: -0.78 SOL"}, {"entry_time": "2025-07-24T18:00:00", "exit_time": "2025-07-24T20:00:00", "direction": "LONG", "entry_price": 186.56637999999998, "exit_price": 184.39542, "quantity": 1.0647637113382686, "pnl": -2.429361957818693, "commission": 0.11780253105178727, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=42.2 crosses D=50.7 down, P/L: -1.80 SOL"}, {"entry_time": "2025-07-24T14:00:00", "exit_time": "2025-07-24T17:00:00", "direction": "LONG", "entry_price": 184.36417999999998, "exit_price": 184.7151, "quantity": 1.0774670065208494, "pnl": 0.2586900664146098, "commission": 0.11941465551371959, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=44.7 crosses D=48.6 down, P/L: +0.72 SOL"}, {"entry_time": "2025-07-24T04:00:00", "exit_time": "2025-07-24T07:00:00", "direction": "LONG", "entry_price": 188.188, "exit_price": 190.83897, "quantity": 1.0553019826518537, "pnl": 2.676738250905643, "commission": 0.12083564604494255, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.03 SOL"}, {"entry_time": "2025-07-24T01:00:00", "exit_time": "2025-07-24T02:00:00", "direction": "LONG", "entry_price": 190.47027999999997, "exit_price": 187.9119, "quantity": 1.0429620360433594, "pnl": -2.7858842004650457, "commission": 0.11759098669246568, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=12.9 crosses D=18.5 down, P/L: -2.18 SOL"}, {"entry_time": "2025-07-23T21:00:00", "exit_time": "2025-07-23T23:00:00", "direction": "LONG", "entry_price": 191.84165, "exit_price": 188.1117, "quantity": 1.0359339275303476, "pnl": -3.9809045283090394, "commission": 0.1169227753172463, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=3.9 crosses D=19.6 down, P/L: -3.35 SOL"}, {"entry_time": "2025-07-23T17:00:00", "exit_time": "2025-07-23T19:00:00", "direction": "LONG", "entry_price": 198.22803, "exit_price": 194.02578, "quantity": 1.0030079649036563, "pnl": -4.331655862158368, "commission": 0.11676564164198672, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=4.9 crosses D=13.6 down, P/L: -3.81 SOL"}, {"entry_time": "2025-07-23T04:00:00", "exit_time": "2025-07-23T06:00:00", "direction": "LONG", "entry_price": 201.73153, "exit_price": 205.72407, "quantity": 0.9852224853821918, "pnl": 3.8119297940588313, "commission": 0.121610387729004, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +4.40 SOL"}, {"entry_time": "2025-07-22T21:00:00", "exit_time": "2025-07-23T01:00:00", "direction": "LONG", "entry_price": 202.47226999999998, "exit_price": 202.46732999999998, "quantity": 0.9816421104082801, "pnl": -0.12409958629137942, "commission": 0.11925027426595777, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=77.4 crosses D=82.3 down, P/L: +0.40 SOL"}, {"entry_time": "2025-07-22T17:00:00", "exit_time": "2025-07-22T19:00:00", "direction": "LONG", "entry_price": 199.40920999999997, "exit_price": 202.93686, "quantity": 0.996392386713868, "pnl": 3.393600757618628, "commission": 0.12132284537257083, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.93 SOL"}, {"entry_time": "2025-07-22T13:00:00", "exit_time": "2025-07-22T15:00:00", "direction": "LONG", "entry_price": 199.30911, "exit_price": 196.84296, "quantity": 0.997163361539599, "pnl": -2.576925176674284, "commission": 0.11777075261340288, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=33.9 crosses D=43.0 down, P/L: -2.07 SOL"}, {"entry_time": "2025-07-22T04:00:00", "exit_time": "2025-07-22T06:00:00", "direction": "LONG", "entry_price": 196.44625, "exit_price": 195.63417, "quantity": 1.0118031569128945, "pnl": -0.9404310701494238, "commission": 0.11876596248362033, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=60.1 crosses D=68.3 down, P/L: -0.42 SOL"}, {"entry_time": "2025-07-21T06:00:00", "exit_time": "2025-07-21T07:00:00", "direction": "LONG", "entry_price": 181.64146, "exit_price": 180.10970999999998, "quantity": 1.0944814940036294, "pnl": -1.7947480751312936, "commission": 0.11827604669121623, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=42.9 crosses D=50.7 down, P/L: -1.17 SOL"}, {"entry_time": "2025-07-21T04:00:00", "exit_time": "2025-07-21T05:00:00", "direction": "LONG", "entry_price": 182.57238999999996, "exit_price": 180.34947, "quantity": 1.0891919843174878, "pnl": -2.53904776403893, "commission": 0.11786111825994432, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=46.9 crosses D=62.1 down, P/L: -1.86 SOL"}, {"entry_time": "2025-07-20T14:00:00", "exit_time": "2025-07-20T15:00:00", "direction": "LONG", "entry_price": 178.09791999999996, "exit_price": 180.5193, "quantity": 1.1162799026255836, "pnl": 2.5820317906439434, "commission": 0.12090603997562309, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.78 SOL"}, {"entry_time": "2025-07-20T10:00:00", "exit_time": "2025-07-20T11:00:00", "direction": "LONG", "entry_price": 178.10792999999998, "exit_price": 177.37245000000001, "quantity": 1.1163360984536657, "pnl": -0.939847234974366, "commission": 0.11880436128370073, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=55.1 crosses D=57.9 down, P/L: -0.38 SOL"}, {"entry_time": "2025-07-20T06:00:00", "exit_time": "2025-07-20T08:00:00", "direction": "LONG", "entry_price": 177.15697999999998, "exit_price": 177.68214, "quantity": 1.1222888470975425, "pnl": 0.4697348005115224, "commission": 0.11964641043025448, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=61.8 crosses D=64.8 down, P/L: +0.88 SOL"}, {"entry_time": "2025-07-20T02:00:00", "exit_time": "2025-07-20T04:00:00", "direction": "LONG", "entry_price": 177.22705, "exit_price": 175.71410999999998, "quantity": 1.122063519106675, "pnl": -1.8159122161712475, "commission": 0.11829743557397841, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=29.5 crosses D=55.3 down, P/L: -1.16 SOL"}, {"entry_time": "2025-07-19T16:00:00", "exit_time": "2025-07-19T18:00:00", "direction": "LONG", "entry_price": 176.84666999999996, "exit_price": 176.39343, "quantity": 1.124561566313138, "pnl": -0.628715447472616, "commission": 0.11901916315688812, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=67.8 crosses D=77.9 down, P/L: -0.10 SOL"}, {"entry_time": "2025-07-19T14:00:00", "exit_time": "2025-07-19T15:00:00", "direction": "LONG", "entry_price": 177.16699, "exit_price": 175.824, "quantity": 1.1227254023768245, "pnl": -1.6262502308265376, "commission": 0.11844124268850166, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=53.1 crosses D=57.7 down, P/L: -0.99 SOL"}, {"entry_time": "2025-07-19T08:00:00", "exit_time": "2025-07-19T13:00:00", "direction": "LONG", "entry_price": 176.77659999999997, "exit_price": 176.09373000000002, "quantity": 1.1253187026013232, "pnl": -0.8873433231132075, "commission": 0.11889694066789662, "duration_minutes": 300, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=52.2 crosses D=64.8 down, P/L: -0.33 SOL"}, {"entry_time": "2025-07-19T04:00:00", "exit_time": "2025-07-19T07:00:00", "direction": "LONG", "entry_price": 176.08590999999998, "exit_price": 174.97485, "quantity": 1.1299023409690574, "pnl": -1.3740119905324848, "commission": 0.1186226955754258, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=22.6 crosses D=33.2 down, P/L: -0.76 SOL"}, {"entry_time": "2025-07-18T23:00:00", "exit_time": "2025-07-19T01:00:00", "direction": "LONG", "entry_price": 178.5784, "exit_price": 177.77204999999998, "quantity": 1.1142591510451116, "pnl": -1.0173333465527652, "commission": 0.11885048010752945, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=30.2 crosses D=33.5 down, P/L: -0.45 SOL"}, {"entry_time": "2025-07-18T19:00:00", "exit_time": "2025-07-18T21:00:00", "direction": "LONG", "entry_price": 180.39021, "exit_price": 178.33149, "quantity": 1.1033458828671656, "pnl": -2.3895370251425243, "commission": 0.11805678916624027, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=22.5 crosses D=44.0 down, P/L: -1.70 SOL"}, {"entry_time": "2025-07-18T04:00:00", "exit_time": "2025-07-18T07:00:00", "direction": "LONG", "entry_price": 175.67549999999997, "exit_price": 179.69013, "quantity": 1.1324669408988703, "pnl": 4.424339875842384, "commission": 0.12209587909849219, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +4.37 SOL"}, {"entry_time": "2025-07-18T00:00:00", "exit_time": "2025-07-18T02:00:00", "direction": "LONG", "entry_price": 174.41423999999998, "exit_price": 172.89693, "quantity": 1.1408820312094474, "pnl": -1.849424715187351, "commission": 0.11835300041296658, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=27.0 crosses D=46.2 down, P/L: -1.17 SOL"}, {"entry_time": "2025-07-17T13:00:00", "exit_time": "2025-07-17T15:00:00", "direction": "LONG", "entry_price": 173.99381999999997, "exit_price": 173.46635999999998, "quantity": 1.1437354885819109, "pnl": -0.7223145000116794, "commission": 0.11903977920427537, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=66.5 crosses D=68.8 down, P/L: -0.18 SOL"}, {"entry_time": "2025-07-17T11:00:00", "exit_time": "2025-07-17T12:00:00", "direction": "LONG", "entry_price": 171.43125999999998, "exit_price": 171.77804999999998, "quantity": 1.160813006817156, "pnl": 0.2829170257987073, "commission": 0.11964131683541263, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=46.1 crosses D=46.5 down, P/L: +0.69 SOL"}, {"entry_time": "2025-07-16T13:00:00", "exit_time": "2025-07-16T16:00:00", "direction": "LONG", "entry_price": 164.25409, "exit_price": 167.10273, "quantity": 1.2111445744676341, "pnl": 3.3286835417205647, "commission": 0.12143133889093796, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.18 SOL"}, {"entry_time": "2025-07-16T11:00:00", "exit_time": "2025-07-16T12:00:00", "direction": "LONG", "entry_price": 162.62246, "exit_price": 162.95688, "quantity": 1.2232753548367623, "pnl": 0.28948306304148297, "commission": 0.11960468112305501, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=62.6 crosses D=64.5 down, P/L: +0.66 SOL"}, {"entry_time": "2025-07-16T04:00:00", "exit_time": "2025-07-16T06:00:00", "direction": "LONG", "entry_price": 162.00184, "exit_price": 163.78605, "quantity": 1.2277208514640814, "pnl": 2.0698616911323677, "commission": 0.12065012925836313, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.11 SOL"}, {"entry_time": "2025-07-15T22:00:00", "exit_time": "2025-07-16T00:00:00", "direction": "LONG", "entry_price": 160.57040999999998, "exit_price": 162.59724, "quantity": 1.2383828351510102, "pnl": 2.389176903133787, "commission": 0.12081457863535755, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.35 SOL"}, {"entry_time": "2025-07-15T17:00:00", "exit_time": "2025-07-15T21:00:00", "direction": "LONG", "entry_price": 159.64949, "exit_price": 157.53231, "quantity": 1.2458864539116692, "pnl": -2.7555263051421446, "commission": 0.11776042264944825, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=10.7 crosses D=37.6 down, P/L: -1.80 SOL"}, {"entry_time": "2025-07-15T11:00:00", "exit_time": "2025-07-15T14:00:00", "direction": "LONG", "entry_price": 160.18001999999998, "exit_price": 159.30054, "quantity": 1.241926072943469, "pnl": -1.2109528390682722, "commission": 0.1187036964359844, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=21.7 crosses D=27.6 down, P/L: -0.56 SOL"}, {"entry_time": "2025-07-15T02:00:00", "exit_time": "2025-07-15T03:00:00", "direction": "LONG", "entry_price": 164.33416999999997, "exit_price": 162.68715, "quantity": 1.2108034443163644, "pnl": -2.1124067857975093, "commission": 0.11818929693960781, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=14.9 crosses D=16.1 down, P/L: -1.32 SOL"}, {"entry_time": "2025-07-14T06:00:00", "exit_time": "2025-07-14T09:00:00", "direction": "LONG", "entry_price": 161.19102999999998, "exit_price": 164.70513, "quantity": 1.2339054053787677, "pnl": 4.2141286549211765, "commission": 0.12193833012036757, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.84 SOL"}, {"entry_time": "2025-07-14T00:00:00", "exit_time": "2025-07-14T02:00:00", "direction": "LONG", "entry_price": 162.76259999999996, "exit_price": 162.27756, "quantity": 1.222093437023866, "pnl": -0.7117552053253666, "commission": 0.11899100463134797, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=54.2 crosses D=60.6 down, P/L: -0.16 SOL"}, {"entry_time": "2025-07-13T18:00:00", "exit_time": "2025-07-13T21:00:00", "direction": "LONG", "entry_price": 162.14197999999996, "exit_price": 162.56726999999998, "quantity": 1.2267362892130522, "pnl": 0.4020623747110635, "commission": 0.11965630172837778, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=60.5 crosses D=83.0 down, P/L: +0.75 SOL"}, {"entry_time": "2025-07-13T04:00:00", "exit_time": "2025-07-13T10:00:00", "direction": "LONG", "entry_price": 160.68052, "exit_price": 160.98885, "quantity": 1.237876225604147, "pnl": 0.2621038146391304, "commission": 0.11957056200141129, "duration_minutes": 360, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=85.4 crosses D=89.5 down, P/L: +0.63 SOL"}, {"entry_time": "2025-07-12T17:00:00", "exit_time": "2025-07-12T18:00:00", "direction": "LONG", "entry_price": 163.07290999999998, "exit_price": 161.34849, "quantity": 1.2200028877502933, "pnl": -2.221904753934827, "commission": 0.11810737424048957, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=47.2 crosses D=61.4 down, P/L: -1.40 SOL"}, {"entry_time": "2025-07-12T12:00:00", "exit_time": "2025-07-12T14:00:00", "direction": "LONG", "entry_price": 163.08291999999997, "exit_price": 162.95688, "quantity": 1.2199761296826874, "pnl": -0.2730478936456976, "commission": 0.11928210226053969, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=66.7 crosses D=67.1 down, P/L: +0.20 SOL"}, {"entry_time": "2025-07-12T10:00:00", "exit_time": "2025-07-12T11:00:00", "direction": "LONG", "entry_price": 163.54337999999998, "exit_price": 162.28754999999998, "quantity": 1.2167572166411418, "pnl": -1.646518943954555, "commission": 0.11847872858010605, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=40.9 crosses D=41.9 down, P/L: -0.93 SOL"}, {"entry_time": "2025-07-12T05:00:00", "exit_time": "2025-07-12T09:00:00", "direction": "LONG", "entry_price": 161.72155999999998, "exit_price": 162.72710999999998, "quantity": 1.230340807089514, "pnl": 1.1170433162572138, "commission": 0.12012588231164646, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=39.5 crosses D=41.7 down, P/L: +1.33 SOL"}, {"entry_time": "2025-07-12T00:00:00", "exit_time": "2025-07-12T03:00:00", "direction": "LONG", "entry_price": 164.56439999999998, "exit_price": 162.49734, "quantity": 1.2094194136876166, "pnl": -2.6178589558582464, "commission": 0.11791646260115837, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=21.3 crosses D=38.0 down, P/L: -1.74 SOL"}, {"entry_time": "2025-07-11T19:00:00", "exit_time": "2025-07-11T21:00:00", "direction": "LONG", "entry_price": 165.36519999999996, "exit_price": 166.4334, "quantity": 1.203436161495303, "pnl": 1.165335324484972, "commission": 0.12017518322436742, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=69.6 crosses D=75.6 down, P/L: +1.40 SOL"}, {"entry_time": "2025-07-11T15:00:00", "exit_time": "2025-07-11T18:00:00", "direction": "LONG", "entry_price": 163.9638, "exit_price": 163.62621, "quantity": 1.213801024517226, "pnl": -0.5289328846682998, "commission": 0.11916579680152244, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=39.5 crosses D=60.7 down, P/L: -0.01 SOL"}, {"entry_time": "2025-07-10T23:00:00", "exit_time": "2025-07-11T00:00:00", "direction": "LONG", "entry_price": 158.51836, "exit_price": 160.69914, "quantity": 1.2551826236128667, "pnl": 2.616253101027947, "commission": 0.12102406089451881, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.50 SOL"}, {"entry_time": "2025-07-10T14:00:00", "exit_time": "2025-07-10T16:00:00", "direction": "LONG", "entry_price": 157.99784, "exit_price": 157.86198000000002, "quantity": 1.259369662054569, "pnl": -0.2903819153290272, "commission": 0.11928395304231908, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=67.2 crosses D=77.5 down, P/L: +0.18 SOL"}, {"entry_time": "2025-07-10T04:00:00", "exit_time": "2025-07-10T06:00:00", "direction": "LONG", "entry_price": 156.82666999999998, "exit_price": 156.82301999999999, "quantity": 1.268805583353228, "pnl": -0.12401789440381968, "commission": 0.11938675402458894, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=83.0 crosses D=85.9 down, P/L: +0.31 SOL"}, {"entry_time": "2025-07-10T01:00:00", "exit_time": "2025-07-10T02:00:00", "direction": "LONG", "entry_price": 154.72456999999997, "exit_price": 157.06278, "quantity": 1.285686176135087, "pnl": 2.885044206882055, "commission": 0.12116006701880784, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.65 SOL"}, {"entry_time": "2025-07-09T16:00:00", "exit_time": "2025-07-09T20:00:00", "direction": "LONG", "entry_price": 152.93277999999998, "exit_price": 153.52632, "quantity": 1.3006798405761937, "pnl": 0.6521923589225085, "commission": 0.1198131536531098, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=74.5 crosses D=80.3 down, P/L: +0.90 SOL"}, {"entry_time": "2025-07-09T09:00:00", "exit_time": "2025-07-09T10:00:00", "direction": "LONG", "entry_price": 151.89174, "exit_price": 151.06878, "quantity": 1.3097677552034945, "pnl": -1.1966054819394194, "commission": 0.11871901011715834, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=54.7 crosses D=60.7 down, P/L: -0.52 SOL"}, {"entry_time": "2025-07-09T05:00:00", "exit_time": "2025-07-09T08:00:00", "direction": "LONG", "entry_price": 151.63147999999998, "exit_price": 151.25859, "quantity": 1.3121118247281407, "pnl": -0.6083542890412788, "commission": 0.1190809107184234, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=59.0 crosses D=62.9 down, P/L: -0.07 SOL"}, {"entry_time": "2025-07-08T23:00:00", "exit_time": "2025-07-09T01:00:00", "direction": "LONG", "entry_price": 150.58042999999998, "exit_price": 152.58726000000001, "quantity": 1.3209501732280702, "pnl": 2.529986335621698, "commission": 0.12093610051763795, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.31 SOL"}, {"entry_time": "2025-07-08T01:00:00", "exit_time": "2025-07-08T02:00:00", "direction": "LONG", "entry_price": 150.19003999999998, "exit_price": 148.71114, "quantity": 1.324676241744372, "pnl": -2.0772601623401603, "commission": 0.11819646842443268, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=6.7 crosses D=13.6 down, P/L: -1.18 SOL"}, {"entry_time": "2025-07-07T18:00:00", "exit_time": "2025-07-07T19:00:00", "direction": "LONG", "entry_price": 152.87272, "exit_price": 151.46838, "quantity": 1.3017004751861365, "pnl": -1.9463299226558914, "commission": 0.11829987733300457, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=43.3 crosses D=57.4 down, P/L: -1.10 SOL"}, {"entry_time": "2025-07-07T14:00:00", "exit_time": "2025-07-07T16:00:00", "direction": "LONG", "entry_price": 152.46230999999997, "exit_price": 151.95789000000002, "quantity": 1.305322143394286, "pnl": -0.7774429947791689, "commission": 0.1190123992082839, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=51.2 crosses D=57.3 down, P/L: -0.20 SOL"}, {"entry_time": "2025-07-07T12:00:00", "exit_time": "2025-07-07T13:00:00", "direction": "LONG", "entry_price": 152.02186999999998, "exit_price": 150.96888, "quantity": 1.3093166381425394, "pnl": -1.4972969666531144, "commission": 0.11859963985544668, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=25.6 crosses D=37.2 down, P/L: -0.75 SOL"}, {"entry_time": "2025-07-07T09:00:00", "exit_time": "2025-07-07T10:00:00", "direction": "LONG", "entry_price": 152.14199, "exit_price": 151.65819, "quantity": 1.3083974628109496, "pnl": -0.7520602071142408, "commission": 0.11905751460630054, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=43.4 crosses D=54.2 down, P/L: -0.18 SOL"}, {"entry_time": "2025-07-07T03:00:00", "exit_time": "2025-07-07T06:00:00", "direction": "LONG", "entry_price": 151.52137, "exit_price": 151.61823, "quantity": 1.3137713032724596, "pnl": 0.007736880658819681, "commission": 0.11951500777617811, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=69.7 crosses D=74.4 down, P/L: +0.40 SOL"}, {"entry_time": "2025-07-06T18:00:00", "exit_time": "2025-07-06T20:00:00", "direction": "LONG", "entry_price": 148.05791, "exit_price": 151.13871, "quantity": 1.343977114127731, "pnl": 4.018648512825456, "commission": 0.12187618037927282, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +3.38 SOL"}, {"entry_time": "2025-07-06T10:00:00", "exit_time": "2025-07-06T12:00:00", "direction": "LONG", "entry_price": 147.43728999999996, "exit_price": 146.94291, "quantity": 1.3497572870986492, "pnl": -0.7862953657317511, "commission": 0.11900235813598858, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=61.0 crosses D=62.4 down, P/L: -0.20 SOL"}, {"entry_time": "2025-07-06T02:00:00", "exit_time": "2025-07-06T06:00:00", "direction": "LONG", "entry_price": 146.9468, "exit_price": 147.36248999999998, "quantity": 1.3542185374207223, "pnl": 0.44319849441331244, "commission": 0.11973660940708547, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=60.6 crosses D=60.9 down, P/L: +0.71 SOL"}, {"entry_time": "2025-07-06T00:00:00", "exit_time": "2025-07-06T01:00:00", "direction": "LONG", "entry_price": 146.9468, "exit_price": 146.16369, "quantity": 1.3543953133693274, "pnl": -1.1794185638851054, "commission": 0.11877805003246034, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=19.0 crosses D=27.9 down, P/L: -0.49 SOL"}, {"entry_time": "2025-07-05T16:00:00", "exit_time": "2025-07-05T20:00:00", "direction": "LONG", "entry_price": 147.99784999999997, "exit_price": 147.73212, "quantity": 1.3448572204787397, "pnl": -0.47657607416494374, "commission": 0.11920716496717897, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=61.9 crosses D=75.2 down, P/L: +0.03 SOL"}, {"entry_time": "2025-07-05T10:00:00", "exit_time": "2025-07-05T12:00:00", "direction": "LONG", "entry_price": 147.82768, "exit_price": 147.10275, "quantity": 1.3465696430791776, "pnl": -1.0950191898954682, "commission": 0.11885045853807927, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=66.0 crosses D=66.3 down, P/L: -0.43 SOL"}, {"entry_time": "2025-07-05T07:00:00", "exit_time": "2025-07-05T09:00:00", "direction": "LONG", "entry_price": 148.35820999999999, "exit_price": 147.81204, "quantity": 1.3418852476179635, "pnl": -0.8519055432292786, "commission": 0.11900807753778977, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=47.0 crosses D=49.2 down, P/L: -0.25 SOL"}, {"entry_time": "2025-07-04T19:00:00", "exit_time": "2025-07-04T20:00:00", "direction": "LONG", "entry_price": 150.60044999999997, "exit_price": 148.30155, "quantity": 1.322341566635598, "pnl": -3.1575942099154357, "commission": 0.11766318237689247, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=3.2 crosses D=19.8 down, P/L: -2.00 SOL"}, {"entry_time": "2025-07-04T16:00:00", "exit_time": "2025-07-04T17:00:00", "direction": "LONG", "entry_price": 150.93078, "exit_price": 149.87997000000001, "quantity": 1.319662781249663, "pnl": -1.5053894580032274, "commission": 0.11867461083828965, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=22.7 crosses D=27.1 down, P/L: -0.75 SOL"}, {"entry_time": "2025-07-04T11:00:00", "exit_time": "2025-07-04T13:00:00", "direction": "LONG", "entry_price": 151.65149999999997, "exit_price": 152.19764999999998, "quantity": 1.3133280981175965, "pnl": 0.5973428706594599, "commission": 0.11993127012748055, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=55.9 crosses D=64.0 down, P/L: +0.85 SOL"}, {"entry_time": "2025-07-04T07:00:00", "exit_time": "2025-07-04T09:00:00", "direction": "LONG", "entry_price": 152.48233, "exit_price": 151.05879000000002, "quantity": 1.3064473135846344, "pnl": -1.978190219013544, "commission": 0.11841021023330725, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=29.2 crosses D=41.8 down, P/L: -1.12 SOL"}, {"entry_time": "2025-07-03T20:00:00", "exit_time": "2025-07-03T21:00:00", "direction": "LONG", "entry_price": 154.63447999999997, "exit_price": 152.01782999999998, "quantity": 1.288731438743037, "pnl": -3.4897052132492554, "commission": 0.11754609406229662, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=10.7 crosses D=33.4 down, P/L: -2.31 SOL"}, {"entry_time": "2025-07-02T03:00:00", "exit_time": "2025-07-02T10:00:00", "direction": "LONG", "entry_price": 146.49634999999998, "exit_price": 148.64121, "quantity": 1.3599573915632643, "pnl": 2.7956307835301692, "commission": 0.12128742733824444, "duration_minutes": 420, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.44 SOL"}, {"entry_time": "2025-07-01T23:00:00", "exit_time": "2025-07-02T01:00:00", "direction": "LONG", "entry_price": 148.41827, "exit_price": 145.74410999999998, "quantity": 1.3428626735013083, "pnl": -3.708458242091299, "commission": 0.11742859512100123, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=7.6 crosses D=18.9 down, P/L: -2.38 SOL"}, {"entry_time": "2025-07-01T02:00:00", "exit_time": "2025-07-01T03:00:00", "direction": "LONG", "entry_price": 157.88772999999998, "exit_price": 156.36348, "quantity": 1.2625972037015285, "pnl": -2.0429682433074365, "commission": 0.11845445556542392, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=67.7 crosses D=69.0 down, P/L: -1.21 SOL"}, {"entry_time": "2025-06-30T20:00:00", "exit_time": "2025-06-30T22:00:00", "direction": "LONG", "entry_price": 150.96080999999998, "exit_price": 157.63221, "quantity": 1.3193983762791548, "pnl": 8.677446518354783, "commission": 0.12478780915397682, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +6.98 SOL"}, {"entry_time": "2025-06-30T04:00:00", "exit_time": "2025-06-30T07:00:00", "direction": "LONG", "entry_price": 151.73158, "exit_price": 152.37747, "quantity": 1.3126158814584092, "pnl": 0.7277976194160745, "commission": 0.12000785225907137, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=56.9 crosses D=63.6 down, P/L: +0.95 SOL"}, {"entry_time": "2025-06-30T00:00:00", "exit_time": "2025-06-30T02:00:00", "direction": "LONG", "entry_price": 151.49133999999998, "exit_price": 150.97887, "quantity": 1.3148179297953984, "pnl": -0.7929105796599694, "commission": 0.11910583517774913, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=54.9 crosses D=65.3 down, P/L: -0.21 SOL"}, {"entry_time": "2025-06-29T14:00:00", "exit_time": "2025-06-29T21:00:00", "direction": "LONG", "entry_price": 150.41025999999997, "exit_price": 151.06878, "quantity": 1.3241841385760966, "pnl": 0.7519760095491569, "commission": 0.1200257293860251, "duration_minutes": 420, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=60.2 crosses D=74.6 down, P/L: +0.96 SOL"}, {"entry_time": "2025-06-29T04:00:00", "exit_time": "2025-06-29T06:00:00", "direction": "LONG", "entry_price": 151.14099, "exit_price": 150.48935999999998, "quantity": 1.317927234113081, "pnl": -0.9778013391580707, "commission": 0.1190004155929486, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=70.9 crosses D=73.7 down, P/L: -0.35 SOL"}, {"entry_time": "2025-06-28T08:00:00", "exit_time": "2025-06-28T13:00:00", "direction": "LONG", "entry_price": 142.66252, "exit_price": 144.63522, "quantity": 1.3958996767464589, "pnl": 2.632553538211252, "commission": 0.12113775410649176, "duration_minutes": 300, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.26 SOL"}, {"entry_time": "2025-06-28T02:00:00", "exit_time": "2025-06-28T05:00:00", "direction": "LONG", "entry_price": 141.83168999999998, "exit_price": 142.4574, "quantity": 1.4039865522298647, "pnl": 0.7584834612764072, "commission": 0.12000496431937843, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=53.7 crosses D=54.5 down, P/L: +0.91 SOL"}, {"entry_time": "2025-06-27T15:00:00", "exit_time": "2025-06-27T19:00:00", "direction": "LONG", "entry_price": 142.30216, "exit_price": 141.12873000000002, "quantity": 1.3996090615529697, "pnl": -1.7608582907101336, "commission": 0.11851502961207747, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=73.9 crosses D=80.0 down, P/L: -0.89 SOL"}, {"entry_time": "2025-06-27T13:00:00", "exit_time": "2025-06-27T14:00:00", "direction": "LONG", "entry_price": 141.3412, "exit_price": 140.13972, "quantity": 1.409398112592616, "pnl": -1.811871238438096, "commission": 0.11850759412035461, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=46.5 crosses D=52.6 down, P/L: -0.92 SOL"}, {"entry_time": "2025-06-27T08:00:00", "exit_time": "2025-06-27T12:00:00", "direction": "LONG", "entry_price": 139.50937, "exit_price": 140.46939, "quantity": 1.4277421232806293, "pnl": 1.2503285541111695, "commission": 0.12033243908072086, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=51.3 crosses D=57.8 down, P/L: +1.24 SOL"}, {"entry_time": "2025-06-26T21:00:00", "exit_time": "2025-06-26T23:00:00", "direction": "LONG", "entry_price": 143.17302999999998, "exit_price": 142.08776999999998, "quantity": 1.3914517908894357, "pnl": -1.628711939798668, "commission": 0.11862496921799172, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=13.8 crosses D=21.1 down, P/L: -0.80 SOL"}, {"entry_time": "2025-06-26T14:00:00", "exit_time": "2025-06-26T15:00:00", "direction": "LONG", "entry_price": 145.24509999999998, "exit_price": 144.64521, "quantity": 1.3717474725687413, "pnl": -0.9419476120612504, "commission": 0.11905002074200488, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=45.0 crosses D=46.5 down, P/L: -0.31 SOL"}, {"entry_time": "2025-06-26T06:00:00", "exit_time": "2025-06-26T09:00:00", "direction": "LONG", "entry_price": 143.62347999999997, "exit_price": 145.99385999999998, "quantity": 1.3868113567872806, "pnl": 3.165790338059923, "commission": 0.12147956584152736, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.66 SOL"}, {"entry_time": "2025-06-26T02:00:00", "exit_time": "2025-06-26T04:00:00", "direction": "LONG", "entry_price": 144.77462999999997, "exit_price": 144.15570000000002, "quantity": 1.375934968067535, "pnl": -0.9706167508717214, "commission": 0.1190093210857519, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=30.9 crosses D=37.5 down, P/L: -0.33 SOL"}, {"entry_time": "2025-06-26T00:00:00", "exit_time": "2025-06-26T01:00:00", "direction": "LONG", "entry_price": 143.94379999999998, "exit_price": 143.08677, "quantity": 1.3840746668988964, "pnl": -1.3050191758875676, "commission": 0.11882566411523339, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=10.5 crosses D=14.8 down, P/L: -0.57 SOL"}, {"entry_time": "2025-06-25T18:00:00", "exit_time": "2025-06-25T21:00:00", "direction": "LONG", "entry_price": 146.32618, "exit_price": 145.43442000000002, "quantity": 1.3617386959704647, "pnl": -1.333170305982602, "commission": 0.11882620646401253, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=28.2 crosses D=57.3 down, P/L: -0.60 SOL"}, {"entry_time": "2025-06-25T03:00:00", "exit_time": "2025-06-25T05:00:00", "direction": "LONG", "entry_price": 145.11496999999997, "exit_price": 144.76509, "quantity": 1.3732036566713144, "pnl": -0.5997316659639496, "commission": 0.11927517056781113, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=56.3 crosses D=60.4 down, P/L: -0.06 SOL"}, {"entry_time": "2025-06-24T21:00:00", "exit_time": "2025-06-24T22:00:00", "direction": "LONG", "entry_price": 145.04489999999998, "exit_price": 144.09576, "quantity": 1.374079743242157, "pnl": -1.4229934864426717, "commission": 0.11879943894185008, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=44.7 crosses D=47.5 down, P/L: -0.66 SOL"}, {"entry_time": "2025-06-24T18:00:00", "exit_time": "2025-06-24T19:00:00", "direction": "LONG", "entry_price": 144.63449, "exit_price": 144.22563, "quantity": 1.378089726508948, "pnl": -0.6826992809818228, "commission": 0.11925351540136842, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=47.6 crosses D=54.5 down, P/L: -0.12 SOL"}, {"entry_time": "2025-06-24T10:00:00", "exit_time": "2025-06-24T12:00:00", "direction": "LONG", "entry_price": 143.29315, "exit_price": 145.22463, "quantity": 1.3906484664170085, "pnl": 2.5648358545178276, "commission": 0.12117384539728647, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.22 SOL"}, {"entry_time": "2025-06-23T03:00:00", "exit_time": "2025-06-23T05:00:00", "direction": "LONG", "entry_price": 129.60947999999996, "exit_price": 131.9679, "quantity": 1.5369456647022544, "pnl": 3.503066899476211, "commission": 0.12169649507091634, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.62 SOL"}, {"entry_time": "2025-06-22T23:00:00", "exit_time": "2025-06-23T01:00:00", "direction": "LONG", "entry_price": 129.87974999999997, "exit_price": 129.24063, "quantity": 1.5339350857101341, "pnl": -1.099316634092773, "commission": 0.11894804211376904, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=29.2 crosses D=34.0 down, P/L: -0.38 SOL"}, {"entry_time": "2025-06-22T21:00:00", "exit_time": "2025-06-22T22:00:00", "direction": "LONG", "entry_price": 129.93981, "exit_price": 128.38148999999999, "quantity": 1.5336305111062596, "pnl": -2.50802096014229, "commission": 0.11813386207516986, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=20.6 crosses D=23.3 down, P/L: -1.30 SOL"}, {"entry_time": "2025-06-22T19:00:00", "exit_time": "2025-06-22T20:00:00", "direction": "LONG", "entry_price": 133.57343999999998, "exit_price": 128.51136, "quantity": 1.4930776249112776, "pnl": -7.673204845208602, "commission": 0.11512646169775087, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=17.9 crosses D=23.4 down, P/L: -4.80 SOL"}, {"entry_time": "2025-06-22T15:00:00", "exit_time": "2025-06-22T16:00:00", "direction": "LONG", "entry_price": 134.97484, "exit_price": 132.11775, "quantity": 1.4782363998135042, "pnl": -4.34063519581004, "commission": 0.11718076026687635, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=18.9 crosses D=38.4 down, P/L: -2.59 SOL"}, {"entry_time": "2025-06-22T10:00:00", "exit_time": "2025-06-22T13:00:00", "direction": "LONG", "entry_price": 135.16502999999997, "exit_price": 135.69417, "quantity": 1.476076306370357, "pnl": 0.6608740472031162, "commission": 0.12017696954975479, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=50.6 crosses D=51.0 down, P/L: +0.80 SOL"}, {"entry_time": "2025-06-22T03:00:00", "exit_time": "2025-06-22T08:00:00", "direction": "LONG", "entry_price": 138.48834999999997, "exit_price": 134.83503, "quantity": 1.441449389297561, "pnl": -5.382690605898187, "commission": 0.11661472298965098, "duration_minutes": 300, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=36.5 crosses D=41.5 down, P/L: -3.38 SOL"}, {"entry_time": "2025-06-21T22:00:00", "exit_time": "2025-06-21T23:00:00", "direction": "LONG", "entry_price": 140.36021999999997, "exit_price": 139.90995, "quantity": 1.4223512907453213, "pnl": -0.7598427744662078, "commission": 0.11940065878236802, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=28.5 crosses D=29.4 down, P/L: -0.17 SOL"}, {"entry_time": "2025-06-21T06:00:00", "exit_time": "2025-06-21T17:00:00", "direction": "LONG", "entry_price": 140.14, "exit_price": 142.00785000000002, "quantity": 1.4242411650355797, "pnl": 2.5389168046748356, "commission": 0.12135205543691871, "duration_minutes": 660, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.15 SOL"}, {"entry_time": "2025-06-21T00:00:00", "exit_time": "2025-06-21T03:00:00", "direction": "LONG", "entry_price": 138.39825999999996, "exit_price": 140.76909, "quantity": 1.4417061731170602, "pnl": 3.296271646788936, "commission": 0.12176859962224261, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.65 SOL"}, {"entry_time": "2025-06-20T12:00:00", "exit_time": "2025-06-20T14:00:00", "direction": "LONG", "entry_price": 145.39524999999998, "exit_price": 147.26259, "quantity": 1.3720063350445904, "pnl": 2.4407751858451388, "commission": 0.12122712383704447, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.16 SOL"}, {"entry_time": "2025-06-19T15:00:00", "exit_time": "2025-06-19T17:00:00", "direction": "LONG", "entry_price": 145.23508999999999, "exit_price": 145.87398000000002, "quantity": 1.3734315341592322, "pnl": 0.7572629183718478, "commission": 0.1202087544871879, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=38.6 crosses D=43.0 down, P/L: +0.93 SOL"}, {"entry_time": "2025-06-19T10:00:00", "exit_time": "2025-06-19T12:00:00", "direction": "LONG", "entry_price": 146.67652999999999, "exit_price": 145.70415, "quantity": 1.3601472317420409, "pnl": -1.4414874229668042, "commission": 0.11890745776549623, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=53.9 crosses D=64.1 down, P/L: -0.68 SOL"}, {"entry_time": "2025-06-19T07:00:00", "exit_time": "2025-06-19T08:00:00", "direction": "LONG", "entry_price": 146.99684999999997, "exit_price": 145.47438, "quantity": 1.3574969501339285, "pnl": -2.185236997973936, "commission": 0.11848861630357448, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=48.6 crosses D=63.1 down, P/L: -1.23 SOL"}, {"entry_time": "2025-06-19T02:00:00", "exit_time": "2025-06-19T03:00:00", "direction": "LONG", "entry_price": 144.79465, "exit_price": 147.23262, "quantity": 1.377712692189712, "pnl": 3.237115662610755, "commission": 0.1217065495670069, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.73 SOL"}, {"entry_time": "2025-06-19T00:00:00", "exit_time": "2025-06-19T01:00:00", "direction": "LONG", "entry_price": 145.65550999999996, "exit_price": 143.70615, "quantity": 1.3699694253768573, "pnl": -2.7886874180957424, "commission": 0.11812381904317228, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=3.2 crosses D=18.5 down, P/L: -1.66 SOL"}, {"entry_time": "2025-06-18T20:00:00", "exit_time": "2025-06-18T23:00:00", "direction": "LONG", "entry_price": 145.35521, "exit_price": 144.60525, "quantity": 1.372974289347536, "pnl": -1.1487993722518643, "commission": 0.11912357421280367, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=19.3 crosses D=27.6 down, P/L: -0.46 SOL"}, {"entry_time": "2025-06-18T18:00:00", "exit_time": "2025-06-18T19:00:00", "direction": "LONG", "entry_price": 146.56641999999997, "exit_price": 144.94491, "quantity": 1.3619620318361907, "pnl": -2.3268807327194123, "commission": 0.11844567847674826, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=4.0 crosses D=14.4 down, P/L: -1.33 SOL"}, {"entry_time": "2025-06-18T14:00:00", "exit_time": "2025-06-18T15:00:00", "direction": "LONG", "entry_price": 148.06791999999996, "exit_price": 147.45239999999998, "quantity": 1.3482952865165254, "pnl": -0.9491883402999478, "commission": 0.11928562554332957, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=33.7 crosses D=39.0 down, P/L: -0.32 SOL"}, {"entry_time": "2025-06-18T10:00:00", "exit_time": "2025-06-18T12:00:00", "direction": "LONG", "entry_price": 148.41827, "exit_price": 148.07178, "quantity": 1.3452076131064783, "pnl": -0.5856133573106231, "commission": 0.11951237144533651, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=56.0 crosses D=58.4 down, P/L: -0.05 SOL"}, {"entry_time": "2025-06-18T06:00:00", "exit_time": "2025-06-18T08:00:00", "direction": "LONG", "entry_price": 147.64749999999998, "exit_price": 147.34251, "quantity": 1.3523183436519148, "pnl": -0.5319959590739934, "commission": 0.11955238744362942, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=33.9 crosses D=37.6 down, P/L: -0.01 SOL"}, {"entry_time": "2025-06-17T12:00:00", "exit_time": "2025-06-17T13:00:00", "direction": "LONG", "entry_price": 153.68353, "exit_price": 152.83701000000002, "quantity": 1.2993793225171706, "pnl": -1.219106534402806, "commission": 0.11915595030561002, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=49.3 crosses D=50.8 down, P/L: -0.54 SOL"}, {"entry_time": "2025-06-17T07:00:00", "exit_time": "2025-06-17T11:00:00", "direction": "LONG", "entry_price": 152.04188999999997, "exit_price": 152.80704, "quantity": 1.3133085090014258, "pnl": 0.8844683341420928, "commission": 0.12040967152039272, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=49.0 crosses D=50.6 down, P/L: +1.07 SOL"}, {"entry_time": "2025-06-16T23:00:00", "exit_time": "2025-06-17T02:00:00", "direction": "LONG", "entry_price": 157.60744999999997, "exit_price": 157.56228, "quantity": 1.2669695764222184, "pnl": -0.17700498485800348, "commission": 0.11977596909103137, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=75.7 crosses D=81.5 down, P/L: +0.27 SOL"}, {"entry_time": "2025-06-16T04:00:00", "exit_time": "2025-06-16T06:00:00", "direction": "LONG", "entry_price": 150.62046999999998, "exit_price": 152.74710000000002, "quantity": 1.3253995056528474, "pnl": 2.6971637922086167, "commission": 0.12147055849794364, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.43 SOL"}, {"entry_time": "2025-06-15T17:00:00", "exit_time": "2025-06-15T20:00:00", "direction": "LONG", "entry_price": 145.89575, "exit_price": 148.13172, "quantity": 1.3679353220302979, "pnl": 2.937081574739436, "commission": 0.12158076726066114, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.53 SOL"}, {"entry_time": "2025-06-15T03:00:00", "exit_time": "2025-06-15T07:00:00", "direction": "LONG", "entry_price": 142.95281, "exit_price": 145.36449, "quantity": 1.3956595941427987, "pnl": 3.2441567229325856, "commission": 0.12172760706970494, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.70 SOL"}, {"entry_time": "2025-06-15T00:00:00", "exit_time": "2025-06-15T02:00:00", "direction": "LONG", "entry_price": 144.55441, "exit_price": 143.26659, "quantity": 1.3804752467670165, "pnl": -1.896469221001706, "commission": 0.11866558871023138, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=13.7 crosses D=26.4 down, P/L: -1.00 SOL"}, {"entry_time": "2025-06-14T22:00:00", "exit_time": "2025-06-14T23:00:00", "direction": "LONG", "entry_price": 144.61446999999998, "exit_price": 143.1567, "quantity": 1.3802131398662238, "pnl": -2.130585363942693, "commission": 0.11855205503993223, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=10.6 crosses D=14.6 down, P/L: -1.17 SOL"}, {"entry_time": "2025-06-14T18:00:00", "exit_time": "2025-06-14T19:00:00", "direction": "LONG", "entry_price": 145.91576999999998, "exit_price": 145.30454999999998, "quantity": 1.3680515558474013, "pnl": -0.9554509413845766, "commission": 0.11927046941952389, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=15.3 crosses D=18.1 down, P/L: -0.32 SOL"}, {"entry_time": "2025-06-14T12:00:00", "exit_time": "2025-06-14T13:00:00", "direction": "LONG", "entry_price": 146.92677999999998, "exit_price": 146.00385, "quantity": 1.358841152244689, "pnl": -1.3731528885008595, "commission": 0.11903762385969645, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=41.5 crosses D=50.0 down, P/L: -0.63 SOL"}, {"entry_time": "2025-06-14T03:00:00", "exit_time": "2025-06-14T07:00:00", "direction": "LONG", "entry_price": 147.38724, "exit_price": 147.60225, "quantity": 1.3545889393237127, "pnl": 0.1712859426824243, "commission": 0.11996422516157607, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=77.6 crosses D=85.5 down, P/L: +0.51 SOL"}, {"entry_time": "2025-06-13T13:00:00", "exit_time": "2025-06-13T22:00:00", "direction": "LONG", "entry_price": 145.00486, "exit_price": 146.94291, "quantity": 1.3765096744834275, "pnl": 2.546383572305564, "commission": 0.12136100232704855, "duration_minutes": 540, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.23 SOL"}, {"entry_time": "2025-06-12T23:00:00", "exit_time": "2025-06-13T01:00:00", "direction": "LONG", "entry_price": 158.40824999999998, "exit_price": 157.49235000000002, "quantity": 1.260215010820584, "pnl": -1.2733154625461744, "commission": 0.11908453413564553, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=30.0 crosses D=53.2 down, P/L: -0.60 SOL"}, {"entry_time": "2025-06-12T19:00:00", "exit_time": "2025-06-12T22:00:00", "direction": "LONG", "entry_price": 158.79863999999998, "exit_price": 156.80304, "quantity": 1.257462939466324, "pnl": -2.6276974489563485, "commission": 0.11830440695739333, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=12.8 crosses D=40.6 down, P/L: -1.68 SOL"}, {"entry_time": "2025-06-11T22:00:00", "exit_time": "2025-06-11T23:00:00", "direction": "LONG", "entry_price": 167.35718999999997, "exit_price": 166.42341, "quantity": 1.1933187349808025, "pnl": -1.23345487220579, "commission": 0.11915770385543485, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=62.6 crosses D=70.4 down, P/L: -0.60 SOL"}, {"entry_time": "2025-06-11T00:00:00", "exit_time": "2025-06-11T01:00:00", "direction": "LONG", "entry_price": 158.32816999999997, "exit_price": 163.76607, "quantity": 1.2605353115322948, "pnl": 6.730805222141997, "commission": 0.12385974843952176, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +5.76 SOL"}, {"entry_time": "2025-06-10T22:00:00", "exit_time": "2025-06-10T23:00:00", "direction": "LONG", "entry_price": 158.10794999999996, "exit_price": 156.94289999999998, "quantity": 1.2625072921737928, "pnl": -1.5897690541699927, "commission": 0.11888493342294137, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=16.7 crosses D=19.2 down, P/L: -0.85 SOL"}, {"entry_time": "2025-06-10T18:00:00", "exit_time": "2025-06-10T20:00:00", "direction": "LONG", "entry_price": 160.93077, "exit_price": 158.88096, "quantity": 1.2407078251522858, "pnl": -2.661490217279241, "commission": 0.11827491020382437, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=41.0 crosses D=70.8 down, P/L: -1.73 SOL"}, {"entry_time": "2025-06-10T16:00:00", "exit_time": "2025-06-10T17:00:00", "direction": "LONG", "entry_price": 159.04888999999997, "exit_price": 157.91192999999998, "quantity": 1.2555975249665414, "pnl": -1.5465284590683575, "commission": 0.11896429708241382, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=31.2 crosses D=41.5 down, P/L: -0.82 SOL"}, {"entry_time": "2025-06-10T14:00:00", "exit_time": "2025-06-10T15:00:00", "direction": "LONG", "entry_price": 158.54838999999996, "exit_price": 157.53231, "quantity": 1.2597527545164073, "pnl": -1.39908063567768, "commission": 0.11907105686869954, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=40.2 crosses D=46.4 down, P/L: -0.70 SOL"}, {"entry_time": "2025-06-09T22:00:00", "exit_time": "2025-06-10T02:00:00", "direction": "LONG", "entry_price": 155.07491999999996, "exit_price": 155.48435999999998, "quantity": 1.2879324661770915, "pnl": 0.4071790558155112, "commission": 0.12015201313606001, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=83.2 crosses D=89.3 down, P/L: +0.72 SOL"}, {"entry_time": "2025-06-09T13:00:00", "exit_time": "2025-06-09T16:00:00", "direction": "LONG", "entry_price": 150.94078999999996, "exit_price": 153.19665, "quantity": 1.3228443354724677, "pnl": 2.8625584302194604, "commission": 0.12159319239951492, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.56 SOL"}, {"entry_time": "2025-06-08T11:00:00", "exit_time": "2025-06-08T12:00:00", "direction": "LONG", "entry_price": 150.10996, "exit_price": 149.62023000000002, "quantity": 1.3302847017454127, "pnl": -0.7709028288101327, "commission": 0.11942250182437804, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=29.3 crosses D=30.3 down, P/L: -0.19 SOL"}, {"entry_time": "2025-06-08T08:00:00", "exit_time": "2025-06-08T09:00:00", "direction": "LONG", "entry_price": 150.34018999999998, "exit_price": 149.52033, "quantity": 1.3284241952100035, "pnl": -1.2082977151135137, "commission": 0.11917585442867049, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=19.1 crosses D=21.0 down, P/L: -0.52 SOL"}, {"entry_time": "2025-06-08T03:00:00", "exit_time": "2025-06-08T06:00:00", "direction": "LONG", "entry_price": 150.91075999999998, "exit_price": 149.80005, "quantity": 1.32362812035186, "pnl": -1.589134724722061, "commission": 0.11896773516606879, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=11.5 crosses D=30.8 down, P/L: -0.81 SOL"}, {"entry_time": "2025-06-07T09:00:00", "exit_time": "2025-06-07T12:00:00", "direction": "LONG", "entry_price": 148.36821999999998, "exit_price": 150.6492, "quantity": 1.3459294336310104, "pnl": 2.9483802040639207, "commission": 0.12165791545977887, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.58 SOL"}, {"entry_time": "2025-06-07T07:00:00", "exit_time": "2025-06-07T08:00:00", "direction": "LONG", "entry_price": 148.75861, "exit_price": 147.50235, "quantity": 1.3426561470079255, "pnl": -1.8055521733955417, "commission": 0.11882696215536867, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=14.6 crosses D=17.8 down, P/L: -0.96 SOL"}, {"entry_time": "2025-06-07T03:00:00", "exit_time": "2025-06-07T04:00:00", "direction": "LONG", "entry_price": 149.38924, "exit_price": 148.97088, "quantity": 1.3370952092033797, "pnl": -0.6789001016976222, "commission": 0.11951294997528693, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=37.6 crosses D=39.7 down, P/L: -0.12 SOL"}, {"entry_time": "2025-06-06T07:00:00", "exit_time": "2025-06-06T11:00:00", "direction": "LONG", "entry_price": 145.48533999999998, "exit_price": 147.30255, "quantity": 1.372664568881395, "pnl": 2.373101586442455, "commission": 0.12131819477452807, "duration_minutes": 240, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.11 SOL"}, {"entry_time": "2025-06-06T04:00:00", "exit_time": "2025-06-06T06:00:00", "direction": "LONG", "entry_price": 144.34419999999997, "exit_price": 144.05579999999998, "quantity": 1.3836048869469215, "pnl": -0.5186214347193153, "commission": 0.11958978532382898, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=21.3 crosses D=21.6 down, P/L: +0.00 SOL"}, {"entry_time": "2025-06-05T22:00:00", "exit_time": "2025-06-05T23:00:00", "direction": "LONG", "entry_price": 150.9508, "exit_price": 148.40145, "quantity": 1.3235277828653154, "pnl": -3.4919836185031583, "commission": 0.11784806525549878, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=4.4 crosses D=29.5 down, P/L: -2.25 SOL"}, {"entry_time": "2025-06-05T18:00:00", "exit_time": "2025-06-05T20:00:00", "direction": "LONG", "entry_price": 152.4523, "exit_price": 150.09975, "quantity": 1.3109281894475895, "pnl": -3.2020861081873586, "commission": 0.11806199610242149, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=11.7 crosses D=39.6 down, P/L: -2.05 SOL"}, {"entry_time": "2025-06-05T04:00:00", "exit_time": "2025-06-05T05:00:00", "direction": "LONG", "entry_price": 155.15499999999997, "exit_price": 153.33651, "quantity": 1.288425426256659, "pnl": -2.461526348347906, "commission": 0.11853759495447506, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=5.3 crosses D=16.3 down, P/L: -1.51 SOL"}, {"entry_time": "2025-06-04T21:00:00", "exit_time": "2025-06-05T00:00:00", "direction": "LONG", "entry_price": 156.90675, "exit_price": 155.83401, "quantity": 1.2742458039755522, "pnl": -1.4860769437722214, "commission": 0.11914250001551055, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=43.7 crosses D=66.1 down, P/L: -0.76 SOL"}, {"entry_time": "2025-06-04T10:00:00", "exit_time": "2025-06-04T18:00:00", "direction": "LONG", "entry_price": 156.6565, "exit_price": 155.65419, "quantity": 1.2764752191115956, "pnl": -1.3986371066392687, "commission": 0.11921322977153274, "duration_minutes": 480, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=46.5 crosses D=55.4 down, P/L: -0.69 SOL"}, {"entry_time": "2025-06-04T08:00:00", "exit_time": "2025-06-04T09:00:00", "direction": "LONG", "entry_price": 156.84668999999997, "exit_price": 155.78406, "quantity": 1.275130662593774, "pnl": -1.4741791149815748, "commission": 0.11918701898960894, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=20.3 crosses D=20.9 down, P/L: -0.75 SOL"}, {"entry_time": "2025-06-03T16:00:00", "exit_time": "2025-06-03T18:00:00", "direction": "LONG", "entry_price": 160.01986, "exit_price": 160.35948000000002, "quantity": 1.2498219874720184, "pnl": 0.30421206098313036, "commission": 0.12025248240214763, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=74.4 crosses D=78.4 down, P/L: +0.66 SOL"}, {"entry_time": "2025-06-03T12:00:00", "exit_time": "2025-06-03T15:00:00", "direction": "LONG", "entry_price": 159.56940999999998, "exit_price": 159.0408, "quantity": 1.2534632027401567, "pnl": -0.782204257921071, "commission": 0.119611074320614, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=70.9 crosses D=74.6 down, P/L: -0.21 SOL"}, {"entry_time": "2025-06-03T03:00:00", "exit_time": "2025-06-03T06:00:00", "direction": "LONG", "entry_price": 154.38422999999997, "exit_price": 156.59325, "quantity": 1.2952229231771295, "pnl": 2.7394794415479073, "commission": 0.12169390020888421, "duration_minutes": 180, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.52 SOL"}, {"entry_time": "2025-06-02T19:00:00", "exit_time": "2025-06-02T20:00:00", "direction": "LONG", "entry_price": 154.28412999999998, "exit_price": 151.97787, "quantity": 1.296481750327829, "pnl": -3.1082459224562506, "commission": 0.11822192094521713, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=5.4 crosses D=11.6 down, P/L: -2.00 SOL"}, {"entry_time": "2025-06-02T13:00:00", "exit_time": "2025-06-02T14:00:00", "direction": "LONG", "entry_price": 155.81565999999998, "exit_price": 155.29455, "quantity": 1.2838551179659419, "pnl": -0.7886551622090537, "commission": 0.1196254216858307, "duration_minutes": 60, "entry_reason": "Strategy signal", "exit_reason": "KDJ Exit: K=39.3 crosses D=39.5 down, P/L: -0.21 SOL"}, {"entry_time": "2025-06-01T20:00:00", "exit_time": "2025-06-01T22:00:00", "direction": "LONG", "entry_price": 152.0519, "exit_price": 153.93591, "quantity": 1.3153403541816973, "pnl": 2.3566275120534734, "commission": 0.12148686862840913, "duration_minutes": 120, "entry_reason": "Strategy signal", "exit_reason": "Profit Target Reached: +2.19 SOL"}];
+        </script>
+        
+                
+        <div class="report-footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <p>Generated by Trading Bot Analysis System</p>
+                    <p>Report created on September 16, 2025 at 05:11 PM</p>
+                </div>
+                <div class="footer-right">
+                    <p class="disclaimer">
+                        <strong>Disclaimer:</strong> Past performance does not guarantee future results. 
+                        This backtest represents historical simulation and may not reflect actual trading conditions.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+            </div>
+            
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script>
+        // Responsive chart resizing
+        window.addEventListener('resize', function() {
+            var charts = document.querySelectorAll('[id*="chart"]');
+            charts.forEach(function(chart) {
+                if (chart && Plotly) {
+                    Plotly.Plots.resize(chart);
+                }
+            });
+        });
+        
+        // Print functionality
+        function printReport() {
+            window.print();
+        }
+        
+        // Toggle sections
+        function toggleSection(sectionId) {
+            var section = document.getElementById(sectionId);
+            if (section) {
+                section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        // Modal functionality
+        function showTradeDetails(tradeData) {
+            var modal = document.getElementById('tradeModal');
+            var modalBody = document.getElementById('tradeModalBody');
+            
+            var details = `
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Время входа:</span>
+                    <span class="modal-detail-value">${tradeData.entry_time}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Время выхода:</span>
+                    <span class="modal-detail-value">${tradeData.exit_time}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Направление:</span>
+                    <span class="modal-detail-value">${tradeData.direction}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Цена входа:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.entry_price).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Цена выхода:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.exit_price).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Количество:</span>
+                    <span class="modal-detail-value">${parseFloat(tradeData.quantity).toFixed(4)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">P&L:</span>
+                    <span class="modal-detail-value" style="color: ${tradeData.pnl >= 0 ? '#27ae60' : '#e74c3c'}">$${parseFloat(tradeData.pnl).toFixed(2)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Комиссия:</span>
+                    <span class="modal-detail-value">$${parseFloat(tradeData.commission).toFixed(2)}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Длительность:</span>
+                    <span class="modal-detail-value">${tradeData.duration_minutes} мин</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Причина входа:</span>
+                    <span class="modal-detail-value">${tradeData.entry_reason}</span>
+                </div>
+                <div class="modal-detail">
+                    <span class="modal-detail-label">Причина выхода:</span>
+                    <span class="modal-detail-value">${tradeData.exit_reason}</span>
+                </div>
+            `;
+            
+            modalBody.innerHTML = details;
+            modal.style.display = 'block';
+        }
+        
+        function closeModal() {
+            var modal = document.getElementById('tradeModal');
+            modal.style.display = 'none';
+        }
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            var modal = document.getElementById('tradeModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+        </script>
+        
+        </body>
+        </html>
+        

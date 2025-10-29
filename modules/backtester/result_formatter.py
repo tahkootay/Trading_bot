@@ -54,8 +54,8 @@ class ResultFormatter:
         
         # Trade validation
         for i, trade in enumerate(results.trades):
-            if trade.entry_time >= trade.exit_time:
-                errors.append(f"Trade {i}: entry time must be before exit time")
+            if trade.exit_time is not None and trade.entry_time > trade.exit_time:
+                errors.append(f"Trade {i}: entry time must be before or equal to exit time")
             
             if trade.quantity <= 0:
                 errors.append(f"Trade {i}: quantity must be positive")

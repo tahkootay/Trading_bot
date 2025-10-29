@@ -37,6 +37,7 @@ from .chart_builder import ChartBuilder
 from .template_manager import TemplateManager
 from .config import ReporterConfig
 from .main import ReportGenerator
+from .excel_exporter import ExcelExporter, export_strategy_to_excel, export_trades_to_excel
 
 __version__ = "1.0.0"
 __all__ = [
@@ -44,5 +45,8 @@ __all__ = [
     "ChartBuilder", 
     "TemplateManager",
     "ReporterConfig",
-    "ReportGenerator"
+    "ReportGenerator",
+    "ExcelExporter",
+    "export_strategy_to_excel",
+    "export_trades_to_excel"
 ]
