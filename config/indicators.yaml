@@ -1,0 +1,130 @@
+# Technical Indicators Configuration for Trading Analysis
+# Configure which indicators to calculate and their parameters
+
+indicators:
+  # === Трендовые индикаторы (локальные, 5M) ===
+  sma_multiple:
+    enabled: true
+    periods: [5, 10, 20]  # SMA_5, SMA_10, SMA_20
+    
+  ema_multiple:
+    enabled: true
+    periods: [5, 10, 20, 50, 100]  # EMA_5, EMA_10, EMA_20, EMA_50, EMA_100
+    
+  slope_ema_20:
+    enabled: true
+    period: 20
+    lookback: 3  # Наклон за 3 свечи
+    
+  ema_diff_10_50:
+    enabled: true
+    short_period: 10
+    long_period: 50
+
+  # === Осцилляторы (импульс и развороты) ===
+  rsi_14:
+    enabled: true
+    period: 14
+    
+  stochastic:
+    enabled: true
+    k_period: 14
+    d_period: 3
+    smooth_k: 1
+    
+  macd:
+    enabled: true
+    fast_period: 12
+    slow_period: 26
+    signal_period: 9
+    
+  cci_20:
+    enabled: true
+    period: 20
+
+  # === Волатильность и диапазон движения ===
+  atr_14:
+    enabled: true
+    period: 14
+    
+  high_low_range:
+    enabled: true
+    
+  body_to_range:
+    enabled: true
+    
+  volatility_ratio:
+    enabled: true  # ATR / EMA
+
+  # === Bollinger Bands расширенные ===
+  bollinger_bands:
+    enabled: true
+    period: 20
+    std_dev: 2.0
+    
+  bb_width:
+    enabled: true  # (upper - lower) / mid
+    
+  bb_position:
+    enabled: true  # (close - lower) / (upper - lower)
+    
+  bb_touch:
+    enabled: true  # Касание верхней/нижней полос
+
+  # === Объёмы и активность рынка ===
+  volume_change:
+    enabled: true
+    
+  volume_sma_20:
+    enabled: true
+    period: 20
+    
+  relative_volume:
+    enabled: true  # volume / volume_SMA_20
+
+  # === Вспомогательные признаки ===
+  candle_type:
+    enabled: true  # Bullish/Bearish (1/0)
+    
+  candle_ratio:
+    enabled: true  # (close - open) / (high - low)
+    
+  momentum_multiple:
+    enabled: true
+    periods: [3, 10]  # momentum_3, momentum_10
+
+  # === Устаревшие (для совместимости) ===
+  legacy_sma:
+    enabled: false
+    period: 20
+    
+  legacy_ema:
+    enabled: false
+    period: 12
+    
+  legacy_rsi:
+    enabled: false
+    period: 14
+    
+  kdj:
+    enabled: false
+    period: 14
+    k_period: 3
+    d_period: 3
+
+# === Higher TimeFrame Context (будет добавлено позже) ===
+higher_timeframe:
+  enabled: false
+  source_timeframe: "15m"  # или "1h"
+  indicators:
+    - ema_50_htf
+    - ema_200_htf
+    - rsi_14_htf
+    - adx_14_htf
+
+# === Настройки вывода ===
+output:
+  prefix_with_symbol: false  # Добавлять префикс символа (SOL_rsi)
+  round_decimals: 6          # Количество знаков после запятой
+  fill_na_method: "none"     # none, forward, backward
+  column_order: "category"   # category, alphabetical, original

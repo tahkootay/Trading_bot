@@ -51,6 +51,8 @@ from .data_formats import DataFormatter, OutputFormat
 from .config import DataCollectorConfig
 from .main import HistoricalDataCollector
 from .indicators import TechnicalIndicators, IndicatorConfig, calculate_indicators_for_file
+from .advanced_indicators import AdvancedIndicators, calculate_indicators_for_file_advanced
+from .ml_data_prep import MLDataPreparator, prepare_ml_data_cli
 
 __version__ = "1.0.0"
 __all__ = [
@@ -61,6 +63,10 @@ __all__ = [
     "TechnicalIndicators",
     "IndicatorConfig",
     "calculate_indicators_for_file",
+    "AdvancedIndicators",
+    "calculate_indicators_for_file_advanced",
+    "MLDataPreparator",
+    "prepare_ml_data_cli",
     "TimeFrame",
     "Candle",
     "OutputFormat"

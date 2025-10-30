@@ -9,7 +9,9 @@ or applied to existing datasets. All indicators follow a consistent API.
 import math
 import numpy as np
 import pandas as pd
-from typing import List, Optional, Tuple, Union
+import yaml
+from pathlib import Path
+from typing import List, Optional, Tuple, Union, Dict, Any
 from dataclasses import dataclass
 
 
@@ -28,6 +30,61 @@ class IndicatorConfig:
     kdj_period: int = 14
     kdj_k_period: int = 3
     kdj_d_period: int = 3
+
+    @classmethod
+    def from_yaml(cls, config_path: str = None) -> 'IndicatorConfig':
+        """Load configuration from YAML file."""
+        if config_path is None:
+            config_path = Path(__file__).parent.parent.parent / "config" / "indicators.yaml"
+        
+        try:
+            with open(config_path, 'r') as f:
+                config_data = yaml.safe_load(f)
+            
+            indicators = config_data.get('indicators', {})
+            
+            return cls(
+                rsi_period=indicators.get('rsi', {}).get('period', 14),
+                sma_period=indicators.get('sma', {}).get('period', 20),
+                ema_period=indicators.get('ema', {}).get('period', 12),
+                bollinger_period=indicators.get('bollinger_bands', {}).get('period', 20),
+                bollinger_std=indicators.get('bollinger_bands', {}).get('std_dev', 2.0),
+                macd_fast=indicators.get('macd', {}).get('fast_period', 12),
+                macd_slow=indicators.get('macd', {}).get('slow_period', 26),
+                macd_signal=indicators.get('macd', {}).get('signal_period', 9),
+                atr_period=indicators.get('atr', {}).get('period', 14),
+                kdj_period=indicators.get('kdj', {}).get('period', 14),
+                kdj_k_period=indicators.get('kdj', {}).get('k_period', 3),
+                kdj_d_period=indicators.get('kdj', {}).get('d_period', 3)
+            )
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Warning: Could not load config from {config_path}: {e}")
+            return cls()
+
+
+def load_indicators_config(config_path: str = None) -> Dict[str, Any]:
+    """Load indicators configuration from YAML file."""
+    if config_path is None:
+        config_path = Path(__file__).parent.parent.parent / "config" / "indicators.yaml"
+    
+    try:
+        with open(config_path, 'r') as f:
+            config_data = yaml.safe_load(f)
+        return config_data
+    except (FileNotFoundError, yaml.YAMLError) as e:
+        print(f"Warning: Could not load config from {config_path}: {e}")
+        return {
+            'indicators': {
+                'sma': {'enabled': True, 'period': 20},
+                'ema': {'enabled': True, 'period': 12},
+                'rsi': {'enabled': True, 'period': 14},
+                'bollinger_bands': {'enabled': True, 'period': 20, 'std_dev': 2.0},
+                'macd': {'enabled': True, 'fast_period': 12, 'slow_period': 26, 'signal_period': 9},
+                'atr': {'enabled': True, 'period': 14},
+                'kdj': {'enabled': True, 'period': 14, 'k_period': 3, 'd_period': 3}
+            },
+            'output': {'prefix_with_symbol': True, 'round_decimals': 6, 'fill_na_method': 'none'}
+        }
 
 
 class TechnicalIndicators:
