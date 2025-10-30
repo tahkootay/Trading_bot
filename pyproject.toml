@@ -3,12 +3,12 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modular-trading-system"
+name = "data-collector-indicators"
 version = "1.0.0"
-description = "Modular trading system with independent data collection, backtesting, and reporting"
-readme = "README.md"
+description = "Data collection and technical indicators system for cryptocurrency trading analysis"
+readme = "CLAUDE.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.5.0",
@@ -16,11 +16,14 @@ dependencies = [
     "aiohttp>=3.9.0",
     "pybit>=5.6.0",
     "pandas>=2.1.0",
+    "numpy>=1.24.0",
     "pyarrow>=14.0.0",
     "pyyaml>=6.0",
-    "click>=8.1.0",
-    "rich>=13.6.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["modules*"]
+exclude = ["config*"]
 
 [project.optional-dependencies]
 dev = [

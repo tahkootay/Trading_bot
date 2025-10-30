@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Entry point for data collector module when run with python -m
+Data Collector Module CLI Entry Point
+
+This module runs the data collection system from the command line.
 """
 
 import asyncio
