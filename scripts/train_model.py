@@ -432,8 +432,8 @@ def main():
         print(f"   Признаков:     {len(feature_cols)}")
         
         print(f"\n🚀 Теперь можно использовать модель для торговли!")
-        print(f"   Загрузи модель: python3 demo_model_usage.py")
-        print(f"   Тестируй предсказания: python3 temp.py")
+        print(f"   Загрузи модель: python3 demos/demo_model_usage.py")
+        print(f"   Тестируй модель: python3 -m modules.ml_training list")
         
     except Exception as e:
         print(f"❌ Ошибка при обучении модели: {e}")

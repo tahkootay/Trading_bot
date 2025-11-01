@@ -19,49 +19,68 @@ warnings.filterwarnings('ignore')
 class MLDataPreparator:
     """Prepares trading data for machine learning models."""
     
-    def __init__(self, prediction_horizon: int = 3):
+    def __init__(self, prediction_horizons: List[int] = [3]):
         """
         Initialize ML data preparator.
         
         Args:
-            prediction_horizon: Number of bars ahead to predict (N)
+            prediction_horizons: List of prediction horizons (N bars ahead)
         """
-        self.prediction_horizon = prediction_horizon
+        self.prediction_horizons = prediction_horizons
         self.scaler = StandardScaler()
         self.feature_columns = None
         self.lag_features = ['rsi_14', 'macd_line', 'ema_20', 'bb_position', 'momentum_3']
         self.lag_periods = [1, 2, 3]
         
-    def create_target_variable(self, df: pd.DataFrame) -> pd.DataFrame:
+    def create_target_variables(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Create target variable: 1 if price goes up in N bars, 0 otherwise.
+        Create multiple target variables for different prediction horizons.
         
         Args:
             df: DataFrame with OHLCV data
             
         Returns:
-            DataFrame with added target column
+            DataFrame with added target columns
         """
-        print(f"📊 Creating target variable with prediction horizon = {self.prediction_horizon}")
+        print(f"📊 Creating target variables for horizons: {self.prediction_horizons}")
         
         df = df.copy()
+        target_stats = {}
         
-        # Create target: 1 if close(t+N) > close(t), else 0
-        df['future_close'] = df['close'].shift(-self.prediction_horizon)
-        df['target'] = (df['future_close'] > df['close']).astype(int)
+        # Create target for each horizon
+        for horizon in self.prediction_horizons:
+            target_col = f'target_{horizon}'
+            future_close_col = f'future_close_{horizon}'
+            
+            # Create target: 1 if close(t+N) > close(t), else 0
+            df[future_close_col] = df['close'].shift(-horizon)
+            df[target_col] = (df[future_close_col] > df['close']).astype(int)
+            
+            # Calculate statistics before removing NaN rows
+            valid_mask = ~df[target_col].isna()
+            target_counts = df.loc[valid_mask, target_col].value_counts()
+            target_stats[horizon] = {
+                'total': valid_mask.sum(),
+                'class_0': target_counts.get(0, 0),
+                'class_1': target_counts.get(1, 0),
+                'class_0_pct': target_counts.get(0, 0) / valid_mask.sum() * 100,
+                'class_1_pct': target_counts.get(1, 0) / valid_mask.sum() * 100
+            }
+            
+            print(f"   📈 Target_{horizon}: {target_stats[horizon]['class_1_pct']:.1f}% up / {target_stats[horizon]['class_0_pct']:.1f}% down")
+            
+            # Remove temporary future_close column
+            df = df.drop(future_close_col, axis=1)
         
-        # Remove the temporary future_close column
-        df = df.drop('future_close', axis=1)
-        
-        # Remove last N rows as they don't have future prices
+        # Remove rows that don't have all future prices (max horizon determines cutoff)
+        max_horizon = max(self.prediction_horizons)
         valid_rows_before = len(df)
-        df = df.iloc[:-self.prediction_horizon]
+        df = df.iloc[:-max_horizon]
         valid_rows_after = len(df)
         
-        print(f"   ✅ Target created: {valid_rows_before} → {valid_rows_after} rows")
-        print(f"   📈 Target distribution: {df['target'].value_counts().to_dict()}")
+        print(f"   ✅ Targets created: {valid_rows_before} → {valid_rows_after} rows (removed last {max_horizon} rows)")
         
-        return df
+        return df, target_stats
     
     def create_lag_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -129,33 +148,43 @@ class MLDataPreparator:
         
         return df_clean
     
-    def prepare_features(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    def prepare_features(self, df: pd.DataFrame, target_horizon: int) -> Tuple[pd.DataFrame, List[str]]:
         """
         Prepare feature columns for ML (exclude non-feature columns).
         
         Args:
             df: DataFrame with all columns
+            target_horizon: Which target horizon to use
             
         Returns:
             Tuple of (features_df, feature_column_names)
         """
-        print("⚙️ Preparing features for ML...")
+        print(f"⚙️ Preparing features for ML (target_{target_horizon})...")
         
         # Columns to exclude from features
         exclude_columns = [
-            'timestamp', 'symbol', 'timeframe', 'target',
+            'timestamp', 'symbol', 'timeframe',
             'open', 'high', 'low', 'close', 'volume'  # Raw OHLCV data
         ]
+        
+        # Exclude all target columns except the one we want
+        target_columns = [f'target_{h}' for h in self.prediction_horizons]
+        exclude_columns.extend([col for col in target_columns if col != f'target_{target_horizon}'])
         
         # Get feature columns (everything except excluded)
         feature_columns = [col for col in df.columns if col not in exclude_columns]
         
         print(f"   📊 Total columns: {len(df.columns)}")
         print(f"   🎯 Feature columns: {len(feature_columns)}")
-        print(f"   ❌ Excluded: {exclude_columns}")
+        print(f"   🎯 Using target: target_{target_horizon}")
+        print(f"   ❌ Excluded: {len(exclude_columns)} columns")
         
-        # Create features DataFrame
-        features_df = df[feature_columns + ['target']].copy()
+        # Create features DataFrame with selected target
+        target_col = f'target_{target_horizon}'
+        features_df = df[feature_columns + [target_col]].copy()
+        
+        # Rename target column to 'target' for compatibility
+        features_df = features_df.rename(columns={target_col: 'target'})
         
         self.feature_columns = feature_columns
         
@@ -311,43 +340,61 @@ class MLDataPreparator:
     def save_datasets(self, train_df: pd.DataFrame, 
                      val_df: pd.DataFrame, 
                      test_df: pd.DataFrame, 
+                     target_horizon: int,
                      output_dir: str = "data/processed") -> Dict[str, str]:
         """
-        Save datasets to CSV files.
+        Save datasets to CSV files with target horizon suffix.
         
         Args:
             train_df, val_df, test_df: DataFrames to save
+            target_horizon: Target horizon for file naming
             output_dir: Output directory path
             
         Returns:
             Dictionary with file paths
         """
-        print(f"💾 Saving datasets to {output_dir}...")
+        print(f"💾 Saving datasets for target_{target_horizon} to {output_dir}...")
         
         # Create output directory
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         
-        # Save files
+        # Save files with horizon suffix
         file_paths = {
-            'train': output_path / "train.csv",
-            'val': output_path / "val.csv", 
-            'test': output_path / "test.csv"
+            'train': output_path / f"train_target{target_horizon}.csv",
+            'val': output_path / f"val_target{target_horizon}.csv", 
+            'test': output_path / f"test_target{target_horizon}.csv"
         }
         
         train_df.to_csv(file_paths['train'], index=False)
         val_df.to_csv(file_paths['val'], index=False)
         test_df.to_csv(file_paths['test'], index=False)
         
-        print(f"   ✅ Saved train.csv: {len(train_df)} rows")
-        print(f"   ✅ Saved val.csv: {len(val_df)} rows") 
-        print(f"   ✅ Saved test.csv: {len(test_df)} rows")
+        print(f"   ✅ Saved train_target{target_horizon}.csv: {len(train_df)} rows")
+        print(f"   ✅ Saved val_target{target_horizon}.csv: {len(val_df)} rows") 
+        print(f"   ✅ Saved test_target{target_horizon}.csv: {len(test_df)} rows")
         
         return {k: str(v) for k, v in file_paths.items()}
     
+    def save_target_stats(self, target_stats: Dict[int, Dict], output_dir: str):
+        """Save target statistics to log file."""
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        stats_file = output_path / "target_stats.txt"
+        
+        with open(stats_file, 'w') as f:
+            f.write("Target Horizon Statistics\n")
+            f.write("=" * 30 + "\n")
+            for horizon in sorted(target_stats.keys()):
+                stats = target_stats[horizon]
+                f.write(f"Target_{horizon}: {stats['class_1_pct']:.1f}% / {stats['class_0_pct']:.1f}%\n")
+        
+        print(f"   ✅ Saved target statistics to {stats_file}")
+
     def prepare_ml_data(self, input_file: str, output_dir: str = "data/processed") -> Dict[str, Any]:
         """
-        Complete ML data preparation pipeline.
+        Complete ML data preparation pipeline for multiple target horizons.
         
         Args:
             input_file: Path to input CSV file with indicators
@@ -357,6 +404,7 @@ class MLDataPreparator:
             Dictionary with preparation statistics
         """
         print("🚀 Starting ML Data Preparation Pipeline")
+        print(f"🎯 Target horizons: {self.prediction_horizons}")
         print("=" * 50)
         
         # 1. Load data
@@ -366,9 +414,9 @@ class MLDataPreparator:
         print(f"   📊 Shape: {df.shape}")
         print(f"   📅 Date range: {df['timestamp'].min()} → {df['timestamp'].max()}")
         
-        # 2. Create target variable
-        print("\n2️⃣ Creating target variable...")
-        df = self.create_target_variable(df)
+        # 2. Create target variables
+        print("\n2️⃣ Creating target variables...")
+        df, target_stats = self.create_target_variables(df)
         
         # 3. Add lag features
         print("\n3️⃣ Adding lag features...")
@@ -380,96 +428,144 @@ class MLDataPreparator:
         df_clean = self.clean_missing_values(df)
         rows_removed = initial_rows - len(df_clean)
         
-        # 5. Prepare features
-        print("\n5️⃣ Preparing features...")
-        features_df, feature_columns = self.prepare_features(df_clean)
+        # Save target statistics
+        self.save_target_stats(target_stats, output_dir)
         
-        # 6. Split data temporally
-        print("\n6️⃣ Splitting data...")
-        train_df, val_df, test_df = self.split_data_temporal(features_df)
+        # Process each target horizon separately
+        all_results = {}
+        all_file_paths = {}
         
-        # 7. Scale features
-        print("\n7️⃣ Scaling features...")
-        train_scaled, val_scaled, test_scaled = self.scale_features(train_df, val_df, test_df)
-        
-        # 8. Analyze data
-        print("\n8️⃣ Analyzing data...")
-        top_correlations = self.analyze_correlations(train_scaled)
-        balance_stats = self.check_class_balance(train_scaled)
-        
-        # 9. Get date ranges
-        print("\n9️⃣ Date ranges:")
-        train_dates = self.get_date_ranges(train_df, "Train")
-        val_dates = self.get_date_ranges(val_df, "Validation") 
-        test_dates = self.get_date_ranges(test_df, "Test")
-        
-        # 10. Save datasets
-        print("\n🔟 Saving datasets...")
-        file_paths = self.save_datasets(train_scaled, val_scaled, test_scaled, output_dir)
+        for horizon in self.prediction_horizons:
+            print(f"\n{'='*20} PROCESSING TARGET_{horizon} {'='*20}")
+            
+            # 5. Prepare features for this horizon
+            print(f"\n5️⃣ Preparing features for target_{horizon}...")
+            features_df, feature_columns = self.prepare_features(df_clean, horizon)
+            
+            # 6. Split data temporally
+            print(f"\n6️⃣ Splitting data for target_{horizon}...")
+            train_df, val_df, test_df = self.split_data_temporal(features_df)
+            
+            # 7. Scale features
+            print(f"\n7️⃣ Scaling features for target_{horizon}...")
+            train_scaled, val_scaled, test_scaled = self.scale_features(train_df, val_df, test_df)
+            
+            # 8. Analyze data
+            print(f"\n8️⃣ Analyzing data for target_{horizon}...")
+            top_correlations = self.analyze_correlations(train_scaled)
+            balance_stats = self.check_class_balance(train_scaled)
+            
+            # 9. Save datasets
+            print(f"\n9️⃣ Saving datasets for target_{horizon}...")
+            file_paths = self.save_datasets(train_scaled, val_scaled, test_scaled, horizon, output_dir)
+            
+            # Store results
+            all_results[horizon] = {
+                'feature_count': len(feature_columns),
+                'train_rows': len(train_scaled),
+                'val_rows': len(val_scaled),
+                'test_rows': len(test_scaled),
+                'top_correlations': top_correlations.to_dict(),
+                'balance_stats': balance_stats,
+                'feature_columns': feature_columns
+            }
+            all_file_paths[horizon] = file_paths
         
         # Summary statistics
         print("\n📋 PREPARATION SUMMARY")
         print("=" * 50)
         print(f"📊 Rows removed due to NaN: {rows_removed}")
-        print(f"📊 Features count: {len(feature_columns)}")
-        print(f"📊 Train rows: {len(train_scaled)}")
-        print(f"📊 Validation rows: {len(val_scaled)}")
-        print(f"📊 Test rows: {len(test_scaled)}")
-        print(f"📊 Prediction horizon: {self.prediction_horizon} bars")
+        print(f"📊 Target horizons processed: {len(self.prediction_horizons)}")
         print(f"💾 Files saved to: {output_dir}")
+        
+        print(f"\n🎯 Target Statistics:")
+        for horizon in self.prediction_horizons:
+            stats = target_stats[horizon]
+            print(f"   Target_{horizon}: {stats['class_1_pct']:.1f}% up / {stats['class_0_pct']:.1f}% down")
+        
+        print(f"\n✅ Created targets: {', '.join(map(str, self.prediction_horizons))}")
+        print(f"📊 Saved processed datasets for each horizon in {output_dir}/")
         
         return {
             'initial_rows': len(df),
             'rows_removed': rows_removed,
             'final_rows': len(df_clean),
-            'feature_count': len(feature_columns),
-            'train_rows': len(train_scaled),
-            'val_rows': len(val_scaled),
-            'test_rows': len(test_scaled),
-            'prediction_horizon': self.prediction_horizon,
-            'top_correlations': top_correlations.to_dict(),
-            'balance_stats': balance_stats,
-            'date_ranges': {
-                'train': train_dates,
-                'val': val_dates,
-                'test': test_dates
-            },
-            'file_paths': file_paths,
-            'feature_columns': feature_columns
+            'prediction_horizons': self.prediction_horizons,
+            'target_stats': target_stats,
+            'results_by_horizon': all_results,
+            'file_paths_by_horizon': all_file_paths
         }
 
 
 def prepare_ml_data_cli(input_file: str, output_dir: str = "data/processed", 
-                       prediction_horizon: int = 3) -> Dict[str, Any]:
+                       prediction_horizons: List[int] = [3]) -> Dict[str, Any]:
     """
-    CLI function for ML data preparation.
+    CLI function for ML data preparation with multiple target horizons.
     
     Args:
         input_file: Path to input CSV file
         output_dir: Output directory for processed files
-        prediction_horizon: Number of bars ahead to predict
+        prediction_horizons: List of prediction horizons (bars ahead to predict)
         
     Returns:
         Preparation statistics
     """
-    preparator = MLDataPreparator(prediction_horizon=prediction_horizon)
+    preparator = MLDataPreparator(prediction_horizons=prediction_horizons)
     return preparator.prepare_ml_data(input_file, output_dir)
 
 
 if __name__ == "__main__":
+    import argparse
     import sys
     
-    if len(sys.argv) < 2:
-        print("Usage: python ml_data_prep.py <input_file.csv> [output_dir] [prediction_horizon]")
-        print("Example: python ml_data_prep.py data/raw/SOLUSDT_5m_advanced_indicators.csv data/processed 3")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="ML Data Preparation with Multiple Target Horizons",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Single target (backward compatibility)
+  python ml_data_prep.py input.csv data/processed 3
+  
+  # Multiple targets
+  python ml_data_prep.py input.csv data/processed --targets 1 3 5 10
+  
+  # With module syntax
+  python -m modules.data_collector.ml_data_prep input.csv data/processed --targets 1 3 5 10
+        """
+    )
     
-    input_file = sys.argv[1]
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "data/processed"
-    prediction_horizon = int(sys.argv[3]) if len(sys.argv) > 3 else 3
+    parser.add_argument('input_file', help='Input CSV file with indicators')
+    parser.add_argument('output_dir', nargs='?', default='data/processed', 
+                       help='Output directory (default: data/processed)')
+    parser.add_argument('--targets', type=int, nargs='+', default=[3],
+                       help='Target horizons (default: [3])')
+    
+    # Support old-style single argument for backward compatibility
+    if len(sys.argv) >= 4 and not any(arg.startswith('--') for arg in sys.argv):
+        try:
+            # Old format: input_file output_dir prediction_horizon
+            input_file = sys.argv[1]
+            output_dir = sys.argv[2] 
+            prediction_horizon = int(sys.argv[3])
+            prediction_horizons = [prediction_horizon]
+            
+            print("⚠️ Using deprecated format. Use --targets for multiple horizons.")
+            print(f"📊 Processing with target horizon: {prediction_horizon}")
+        except (IndexError, ValueError):
+            parser.print_help()
+            sys.exit(1)
+    else:
+        args = parser.parse_args()
+        input_file = args.input_file
+        output_dir = args.output_dir
+        prediction_horizons = args.targets
+    
+    print(f"🎯 Target horizons: {prediction_horizons}")
+    print(f"📁 Input file: {input_file}")
+    print(f"📂 Output directory: {output_dir}")
     
     # Run preparation
-    stats = prepare_ml_data_cli(input_file, output_dir, prediction_horizon)
+    stats = prepare_ml_data_cli(input_file, output_dir, prediction_horizons)
     
     print(f"\n🎉 ML data preparation completed successfully!")
     print(f"📁 Check files in: {output_dir}")
