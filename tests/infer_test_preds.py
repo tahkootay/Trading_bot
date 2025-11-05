@@ -6,8 +6,9 @@ import numpy as np
 import sys
 from pathlib import Path
 
-# Добавляем scripts в путь для импорта SimpleRandomForestClassifier
-sys.path.append(str(Path(__file__).parent.parent / "scripts"))
+# Добавляем project root в путь для правильных импортов
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 def accuracy_score(y_true, y_pred):
     """Simple accuracy calculation."""

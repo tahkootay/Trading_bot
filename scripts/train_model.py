@@ -250,24 +250,71 @@ def evaluate_model(model, scaler, datasets, feature_cols):
     val_acc = accuracy_score(y_val, val_pred)
     test_acc = accuracy_score(y_test, test_pred)
     
+    # Логирование точности в нужном формате
+    print(f"Accuracy (train): {train_acc:.4f} Accuracy (val): {val_acc:.4f} Accuracy (test): {test_acc:.4f}")
+    
     print(f"🎯 Результаты:")
     print(f"   Train Accuracy: {train_acc:.4f} ({train_acc*100:.2f}%)")
     print(f"   Val Accuracy:   {val_acc:.4f} ({val_acc*100:.2f}%)")
     print(f"   Test Accuracy:  {test_acc:.4f} ({test_acc*100:.2f}%)")
     
     overfitting = train_acc - val_acc
-    print(f"   Переобучение:   {overfitting:.4f}")
+    test_overfitting = train_acc - test_acc
+    print(f"   Переобучение (train-val):   {overfitting:.4f}")
+    print(f"   Переобучение (train-test):  {test_overfitting:.4f}")
     
+    # Проверка переобучения
     if overfitting > 0.05:
-        print("   ⚠️ Возможное переобучение (разница > 5%)")
-    else:
+        print("   ⚠️ Возможное переобучение train vs val (разница > 5%)")
+    if test_overfitting > 0.05:
+        print("   ⚠️ ПРЕДУПРЕЖДЕНИЕ: train accuracy > test accuracy + 5%")
+    if overfitting <= 0.05 and test_overfitting <= 0.05:
         print("   ✅ Переобучение в норме")
+    
+    # Статистический анализ наборов данных
+    print(f"\n📊 Статистический анализ данных:")
+    
+    # Создаем DataFrame для анализа
+    df_train = pd.DataFrame(X_train, columns=feature_cols)
+    df_train['target'] = y_train
+    df_val = pd.DataFrame(X_val, columns=feature_cols)
+    df_val['target'] = y_val
+    df_test = pd.DataFrame(X_test, columns=feature_cols)
+    df_test['target'] = y_test
+    
+    print("\n   📈 Статистики признаков (Train set):")
+    train_stats = df_train.describe()
+    print(f"     Среднее значение признаков: {train_stats.loc['mean', feature_cols].mean():.4f}")
+    print(f"     Среднее значение целевой переменной: {train_stats.loc['mean', 'target']:.4f}")
+    
+    print("\n   📈 Статистики признаков (Validation set):")
+    val_stats = df_val.describe()
+    print(f"     Среднее значение признаков: {val_stats.loc['mean', feature_cols].mean():.4f}")
+    print(f"     Среднее значение целевой переменной: {val_stats.loc['mean', 'target']:.4f}")
+    
+    print("\n   📈 Статистики признаков (Test set):")
+    test_stats = df_test.describe()
+    print(f"     Среднее значение признаков: {test_stats.loc['mean', feature_cols].mean():.4f}")
+    print(f"     Среднее значение целевой переменной: {test_stats.loc['mean', 'target']:.4f}")
     
     # Подробный отчёт для test set
     test_report = classification_report_simple(y_test, test_pred)
     print(f"\n📋 Подробный отчёт (Test set):")
     print(f"   Класс 0 (Down): Precision={test_report['class_0']['precision']:.3f}, Recall={test_report['class_0']['recall']:.3f}")
     print(f"   Класс 1 (Up):   Precision={test_report['class_1']['precision']:.3f}, Recall={test_report['class_1']['recall']:.3f}")
+    
+    # Добавляем статистики в метрики
+    analysis_results = {
+        'train_stats': train_stats.to_dict(),
+        'val_stats': val_stats.to_dict(),
+        'test_stats': test_stats.to_dict(),
+        'train_features_mean': float(train_stats.loc['mean', feature_cols].mean()),
+        'val_features_mean': float(val_stats.loc['mean', feature_cols].mean()),
+        'test_features_mean': float(test_stats.loc['mean', feature_cols].mean()),
+        'train_target_mean': float(train_stats.loc['mean', 'target']),
+        'val_target_mean': float(val_stats.loc['mean', 'target']),
+        'test_target_mean': float(test_stats.loc['mean', 'target'])
+    }
     
     # Торговые сигналы
     print(f"\n💰 Анализ торговых сигналов:")
@@ -295,11 +342,16 @@ def evaluate_model(model, scaler, datasets, feature_cols):
         "val_accuracy": float(val_acc),
         "test_accuracy": float(test_acc),
         "overfitting": float(overfitting),
+        "test_overfitting": float(test_overfitting),
+        "overfitting_warning": bool(test_overfitting > 0.05),
         "test_precision_0": float(test_report['class_0']['precision']),
         "test_recall_0": float(test_report['class_0']['recall']),
         "test_precision_1": float(test_report['class_1']['precision']),
         "test_recall_1": float(test_report['class_1']['recall'])
     }
+    
+    # Объединяем метрики с аналитикой
+    performance_metrics.update(analysis_results)
     
     return performance_metrics, feature_importance
 
@@ -314,6 +366,10 @@ def save_trained_model(model, scaler, feature_cols, performance_metrics, feature
     (models_dir / "random_forest").mkdir(exist_ok=True)
     (models_dir / "scalers").mkdir(exist_ok=True)
     (models_dir / "metadata").mkdir(exist_ok=True)
+    
+    # Создаём директорию для отчётов
+    reports_dir = Path("reports")
+    reports_dir.mkdir(exist_ok=True)
     
     version = "v1"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -337,6 +393,41 @@ def save_trained_model(model, scaler, feature_cols, performance_metrics, feature
     # Сохраняем важность признаков
     feature_importance.to_csv(importance_file, index=False)
     print(f"✅ Важность признаков сохранена: {importance_file}")
+    
+    # Сохраняем отчёт о переобучении
+    overfitting_report_file = reports_dir / "overfitting_check.txt"
+    with open(overfitting_report_file, 'w', encoding='utf-8') as f:
+        f.write("Отчёт о проверке переобучения\n")
+        f.write("=" * 50 + "\n\n")
+        f.write(f"Время создания: {timestamp}\n")
+        f.write(f"Версия модели: {version}\n\n")
+        
+        f.write("Метрики точности:\n")
+        f.write(f"Train Accuracy: {performance_metrics['train_accuracy']:.4f}\n")
+        f.write(f"Validation Accuracy: {performance_metrics['val_accuracy']:.4f}\n")
+        f.write(f"Test Accuracy: {performance_metrics['test_accuracy']:.4f}\n\n")
+        
+        f.write("Проверка переобучения:\n")
+        f.write(f"Переобучение (train - val): {performance_metrics['overfitting']:.4f}\n")
+        f.write(f"Переобучение (train - test): {performance_metrics['test_overfitting']:.4f}\n\n")
+        
+        if performance_metrics['overfitting_warning']:
+            f.write("⚠️ ПРЕДУПРЕЖДЕНИЕ: Train accuracy > test accuracy + 5%\n")
+            f.write("Модель может быть переобучена!\n\n")
+        else:
+            f.write("✅ Переобучение в норме\n\n")
+        
+        f.write("Статистики признаков:\n")
+        f.write(f"Среднее значение признаков (train): {performance_metrics['train_features_mean']:.4f}\n")
+        f.write(f"Среднее значение признаков (val): {performance_metrics['val_features_mean']:.4f}\n")
+        f.write(f"Среднее значение признаков (test): {performance_metrics['test_features_mean']:.4f}\n\n")
+        
+        f.write("Статистики целевой переменной:\n")
+        f.write(f"Среднее значение target (train): {performance_metrics['train_target_mean']:.4f}\n")
+        f.write(f"Среднее значение target (val): {performance_metrics['val_target_mean']:.4f}\n")
+        f.write(f"Среднее значение target (test): {performance_metrics['test_target_mean']:.4f}\n")
+    
+    print(f"✅ Отчёт о переобучении сохранён: {overfitting_report_file}")
     
     # Создаём метаданные
     metadata = {
@@ -385,7 +476,8 @@ def save_trained_model(model, scaler, feature_cols, performance_metrics, feature
         "model": str(model_file),
         "scaler": str(scaler_file),
         "metadata": str(metadata_file),
-        "feature_importance": str(importance_file)
+        "feature_importance": str(importance_file),
+        "overfitting_report": str(overfitting_report_file)
     }
 
 
@@ -428,12 +520,16 @@ def main():
         
         print(f"\n🎯 Итоговые метрики:")
         print(f"   Test Accuracy: {performance_metrics['test_accuracy']:.4f}")
-        print(f"   Переобучение:  {performance_metrics['overfitting']:.4f}")
+        print(f"   Переобучение (train-val):  {performance_metrics['overfitting']:.4f}")
+        print(f"   Переобучение (train-test): {performance_metrics['test_overfitting']:.4f}")
         print(f"   Признаков:     {len(feature_cols)}")
+        if performance_metrics['overfitting_warning']:
+            print(f"   ⚠️ Переобучение обнаружено!")
         
         print(f"\n🚀 Теперь можно использовать модель для торговли!")
         print(f"   Загрузи модель: python3 demos/demo_model_usage.py")
         print(f"   Тестируй модель: python3 -m modules.ml_training list")
+        print(f"   Проверь отчёт: reports/overfitting_check.txt")
         
     except Exception as e:
         print(f"❌ Ошибка при обучении модели: {e}")

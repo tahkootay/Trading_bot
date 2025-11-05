@@ -8,5 +8,6 @@ This module contains functionality for:
 """
 
 from .model_manager import ModelManager
+from .backtester import MLBacktester
 
-__all__ = ['ModelManager']
+__all__ = ['ModelManager', 'MLBacktester']

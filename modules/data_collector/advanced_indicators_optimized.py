@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
 """
-Advanced Technical Indicators Module
+OPTIMIZED Advanced Technical Indicators Module
 
-Comprehensive technical analysis indicators for trading systems.
-Supports configuration-based indicator selection and calculation.
-"""
+OPTIMIZED FOR TOP-25 FEATURES ONLY
+
+Based on comprehensive feature importance analysis across multiple prediction horizons.
+This version includes only the most important 25 features for maximum signal-to-noise ratio.
+
+REMOVED FEATURES (commented for future use):
+- Noise features: bb_touch_upper, bb_touch_lower, candle_type
+- Low importance: Most lag features, basic SMAs, redundant indicators
+
+KEPT FEATURES (25 total):
+Essential (10): volume_sma_20, atr_14, volatility_ratio, bb_width, ema_100, 
+                ema_diff_10_50, rsi_14, stoch_d, ema_50, stoch_k
+Good (15): bb_position, slope_ema_20, momentum_3, macd_line, bb_upper,
+           macd_histogram, relative_volume, bb_position_lag_1, momentum_10,
+           rsi_14_lag_1, bb_position_lag_3, momentum_3_lag_1, rsi_14_lag_3,
+           volume_change, cci_20
+
 
 import math
 import numpy as np
@@ -12,29 +26,6 @@ import pandas as pd
 import yaml
 from pathlib import Path
 from typing import List, Optional, Tuple, Union, Dict, Any
-# FEATURE OPTIMIZATION NOTES:
-# Based on comprehensive noise analysis, the following features have been identified:
-# 
-# NOISE FEATURES (consider removing):
-# - bb_touch_upper, bb_touch_lower: Very low importance (0.0009)
-# - candle_type: Very low importance (0.0013)
-#
-# LOW PRIORITY FEATURES (use sparingly):
-# - Most lag features beyond lag_1 and lag_3
-# - Basic SMAs (sma_5, sma_10, sma_20) - use EMAs instead
-# - Redundant indicators (bb_middle, high_low_range)
-#
-# TOP 25 ESSENTIAL + GOOD FEATURES:
-# Essential: volume_sma_20, atr_14, volatility_ratio, bb_width, ema_100,
-#           ema_diff_10_50, rsi_14, stoch_d, ema_50, stoch_k
-# Good: bb_position, slope_ema_20, momentum_3, macd_line, bb_upper,
-#       macd_histogram, relative_volume, bb_position_lag_1, momentum_10,
-#       rsi_14_lag_1, bb_position_lag_3, momentum_3_lag_1, rsi_14_lag_3,
-#       volume_change, cci_20
-#
-# Use create_optimized_dataset.py to generate datasets with top 25 features only.
-
-
 
 
 class AdvancedIndicators:
@@ -274,9 +265,9 @@ class AdvancedIndicators:
         if len(prices) < period:
             empty = [None] * len(prices)
             return {
-                'bb_upper': empty, 'bb_middle': empty, 'bb_lower': empty,
+                'bb_upper': empty, 'bb_middle'  # COMMENTED: Low importance/noise feature: empty, 'bb_lower'  # COMMENTED: Low importance/noise feature: empty,
                 'bb_width': empty, 'bb_position': empty, 
-                # NOISE FEATURE COMMENTED: 'bb_touch_upper': empty, 'bb_touch_lower': empty
+                'bb_touch_upper'  # COMMENTED: Low importance/noise feature: empty, 'bb_touch_lower'  # COMMENTED: Low importance/noise feature: empty
             }
         
         # Basic Bollinger Bands
@@ -330,12 +321,12 @@ class AdvancedIndicators:
         
         return {
             'bb_upper': upper_bands,
-            'bb_middle': sma_values,
-            'bb_lower': lower_bands,
+            'bb_middle'  # COMMENTED: Low importance/noise feature: sma_values,
+            'bb_lower'  # COMMENTED: Low importance/noise feature: lower_bands,
             'bb_width': bb_width,
             'bb_position': bb_position,
-                # NOISE FEATURE COMMENTED: 'bb_touch_upper': bb_touch_upper,
-                # NOISE FEATURE COMMENTED: 'bb_touch_lower': bb_touch_lower
+            'bb_touch_upper'  # COMMENTED: Low importance/noise feature: bb_touch_upper,
+            'bb_touch_lower'  # COMMENTED: Low importance/noise feature: bb_touch_lower
         }
 
     # === Объёмы ===
@@ -390,8 +381,8 @@ class AdvancedIndicators:
                 candle_ratio.append(0)
         
         return {
-                # NOISE FEATURE COMMENTED: 'candle_type': candle_type,
-            'candle_ratio': candle_ratio
+            'candle_type'  # COMMENTED: Low importance/noise feature: candle_type,
+            'candle_ratio'  # COMMENTED: Low importance/noise feature: candle_ratio
         }
     
     def calculate_momentum_multiple(self, prices: List[float], periods: List[int]) -> Dict[str, List[float]]:
@@ -416,7 +407,7 @@ class AdvancedIndicators:
         """Calculate MACD."""
         if len(prices) < slow:
             empty = [None] * len(prices)
-            return {'macd_line': empty, 'macd_signal': empty, 'macd_histogram': empty}
+            return {'macd_line': empty, 'macd_signal'  # COMMENTED: Low importance/noise feature: empty, 'macd_histogram': empty}
         
         ema_fast = self._calculate_ema(prices, fast)
         ema_slow = self._calculate_ema(prices, slow)
@@ -445,7 +436,7 @@ class AdvancedIndicators:
         
         return {
             'macd_line': macd_line,
-            'macd_signal': signal_line,
+            'macd_signal'  # COMMENTED: Low importance/noise feature: signal_line,
             'macd_histogram': histogram
         }
 
@@ -481,6 +472,17 @@ class AdvancedIndicators:
         return ema_values
     
     def calculate_all_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate all enabled indicators for a dataframe.
+        
+        OPTIMIZED VERSION
+        Only calculates the top 25 most important features based on:
+        - Feature importance analysis across 4 prediction horizons
+        - Noise reduction analysis 
+        - Removal of redundant and low-signal features
+        
+        Removed features are kept as comments for future experimentation.
+        """
         """Calculate all enabled indicators for a dataframe."""
         result_df = df.copy()
         
@@ -554,16 +556,16 @@ class AdvancedIndicators:
                     atr_values = self.calculate_atr(highs, lows, closes, period)
                     result_df['atr_14'] = atr_values
                 
-                elif indicator_name == 'high_low_range':
-                    result_df['high_low_range'] = self.calculate_high_low_range(highs, lows)
+                elif indicator_name == 'high_low_range'  # COMMENTED: Low importance/noise feature:
+                    result_df['high_low_range'  # COMMENTED: Low importance/noise feature] = self.calculate_high_low_range(highs, lows)
                 
-                elif indicator_name == 'body_to_range':
-                    result_df['body_to_range'] = self.calculate_body_to_range(opens, highs, lows, closes)
+                elif indicator_name == 'body_to_range'  # COMMENTED: Low importance/noise feature:
+                    result_df['body_to_range'  # COMMENTED: Low importance/noise feature] = self.calculate_body_to_range(opens, highs, lows, closes)
                 
                 elif indicator_name == 'volatility_ratio':
-                    if 'atr_14' in result_df.columns and 'ema_20' in result_df.columns:
+                    if 'atr_14' in result_df.columns and 'ema_20'  # COMMENTED: Low importance/noise feature in result_df.columns:
                         result_df['volatility_ratio'] = self.calculate_volatility_ratio(
-                            result_df['atr_14'].tolist(), result_df['ema_20'].tolist()
+                            result_df['atr_14'].tolist(), result_df['ema_20'  # COMMENTED: Low importance/noise feature].tolist()
                         )
                 
                 elif indicator_name == 'bollinger_bands':
@@ -582,7 +584,7 @@ class AdvancedIndicators:
                     for col_name, values in volume_results.items():
                         result_df[col_name] = values
                 
-                # NOISE FEATURE COMMENTED: elif indicator_name in ['candle_type', 'candle_ratio']:
+                elif indicator_name in ['candle_type'  # COMMENTED: Low importance/noise feature, 'candle_ratio'  # COMMENTED: Low importance/noise feature]:
                     candle_results = self.calculate_candle_features(opens, highs, lows, closes)
                     for col_name, values in candle_results.items():
                         result_df[col_name] = values

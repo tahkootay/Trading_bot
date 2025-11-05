@@ -194,27 +194,61 @@ class MLDataPreparator:
                           train_ratio: float = 0.7, 
                           val_ratio: float = 0.15) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
-        Split data temporally (no shuffle) for time series.
+        Split data temporally based on 2025 calendar periods:
+        - Train: January-June 2025
+        - Validation: August 2025  
+        - Test: September-October 2025
         
         Args:
-            df: DataFrame to split
-            train_ratio: Proportion for training
-            val_ratio: Proportion for validation
+            df: DataFrame to split (must have 'timestamp' column)
+            train_ratio: Proportion for training (ignored, using date-based split)
+            val_ratio: Proportion for validation (ignored, using date-based split)
             
         Returns:
             Tuple of (train_df, val_df, test_df)
         """
-        print("📅 Splitting data temporally (no shuffle)...")
+        print("📅 Splitting data by 2025 calendar periods...")
         
-        total_rows = len(df)
-        train_size = int(total_rows * train_ratio)
-        val_size = int(total_rows * val_ratio)
+        if 'timestamp' not in df.columns:
+            print("   ⚠️ Warning: No 'timestamp' column found, falling back to ratio-based split")
+            total_rows = len(df)
+            train_size = int(total_rows * train_ratio)
+            val_size = int(total_rows * val_ratio)
+            
+            train_df = df.iloc[:train_size].copy()
+            val_df = df.iloc[train_size:train_size + val_size].copy()
+            test_df = df.iloc[train_size + val_size:].copy()
+        else:
+            # Convert timestamp to datetime if it's not already
+            df_copy = df.copy()
+            df_copy['timestamp'] = pd.to_datetime(df_copy['timestamp'])
+            df_copy = df_copy.sort_values('timestamp')
+            
+            # Define date ranges for 2025
+            train_start = pd.Timestamp('2025-01-01')
+            train_end = pd.Timestamp('2025-06-30')
+            val_start = pd.Timestamp('2025-08-01')
+            val_end = pd.Timestamp('2025-08-31')
+            test_start = pd.Timestamp('2025-09-01')
+            test_end = pd.Timestamp('2025-10-31')
+            
+            # Split by date ranges
+            train_mask = (df_copy['timestamp'] >= train_start) & (df_copy['timestamp'] <= train_end)
+            val_mask = (df_copy['timestamp'] >= val_start) & (df_copy['timestamp'] <= val_end)
+            test_mask = (df_copy['timestamp'] >= test_start) & (df_copy['timestamp'] <= test_end)
+            
+            train_df = df_copy[train_mask].copy()
+            val_df = df_copy[val_mask].copy()
+            test_df = df_copy[test_mask].copy()
+            
+            print(f"   📅 Train period: Jan-Jun 2025")
+            print(f"   📅 Validation period: Aug 2025")
+            print(f"   📅 Test period: Sep-Oct 2025")
         
-        # Temporal split (chronological order)
-        train_df = df.iloc[:train_size].copy()
-        val_df = df.iloc[train_size:train_size + val_size].copy()
-        test_df = df.iloc[train_size + val_size:].copy()
-        
+        total_rows = len(train_df) + len(val_df) + len(test_df)
+        if total_rows == 0:
+            raise ValueError("No data found in specified date ranges for 2025")
+            
         print(f"   🚂 Train: {len(train_df)} rows ({len(train_df)/total_rows*100:.1f}%)")
         print(f"   🔍 Validation: {len(val_df)} rows ({len(val_df)/total_rows*100:.1f}%)")
         print(f"   🧪 Test: {len(test_df)} rows ({len(test_df)/total_rows*100:.1f}%)")
