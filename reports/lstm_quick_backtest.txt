@@ -1,0 +1,39 @@
+LSTM Horizon 3 Quick Backtest Results
+Generated: 2025-11-06 11:15:41
+
+=== SUMMARY ===
+Average Return: -13.46%
+Total Trades: 1813
+Average Accuracy: 48.48%
+
+=== DETAILED RESULTS ===
+
+August 2025:
+  Return: -14.59%
+  P&L: $-1459.15
+  Trades: 601
+  Win Rate: 27.12%
+  Accuracy: 46.94%
+  Confusion Matrix:
+[[118 400]
+ [129 350]]
+
+September 2025:
+  Return: -11.37%
+  P&L: $-1136.91
+  Trades: 592
+  Win Rate: 21.79%
+  Accuracy: 49.65%
+  Confusion Matrix:
+[[174 309]
+ [193 321]]
+
+October 2025:
+  Return: -14.41%
+  P&L: $-1440.77
+  Trades: 620
+  Win Rate: 25.65%
+  Accuracy: 48.85%
+  Confusion Matrix:
+[[170 358]
+ [152 317]]

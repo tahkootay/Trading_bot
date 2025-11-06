@@ -1,0 +1,45 @@
+Real LSTM Backtesting Results
+Generated: 2025-11-06 11:45:05
+Backend: jax
+
+=== SUMMARY ===
+Average Return: -10.20%
+Total Trades: 1697
+Average Accuracy: 51.8%
+
+=== COMPARISON ===
+Previous Model: -13.46% return, 48.48% accuracy
+Real LSTM: -10.20% return, 51.8% accuracy
+Improvement: +3.26% return, +3.4% accuracy
+
+=== DETAILED RESULTS ===
+
+August 2025:
+  Return: -11.67%
+  P&L: $-1167.04
+  Trades: 541
+  Win Rate: 31.1%
+  Accuracy: 50.2%
+  Confusion Matrix:
+[[516 483]
+ [504 479]]
+
+September 2025:
+  Return: -8.83%
+  P&L: $-883.50
+  Trades: 587
+  Win Rate: 30.5%
+  Accuracy: 51.9%
+  Confusion Matrix:
+[[582 397]
+ [556 447]]
+
+October 2025:
+  Return: -10.10%
+  P&L: $-1009.95
+  Trades: 569
+  Win Rate: 28.5%
+  Accuracy: 53.4%
+  Confusion Matrix:
+[[553 443]
+ [481 505]]

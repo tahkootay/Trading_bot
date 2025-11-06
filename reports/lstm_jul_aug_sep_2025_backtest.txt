@@ -1,0 +1,63 @@
+Quick Real LSTM Backtesting Results - July, August, September 2025
+Generated: 2025-11-06 16:37:57
+Backend: jax
+Model: Quick Real LSTM (window=15, features=5)
+
+=== SUMMARY ===
+Average Return: -68.39%
+Total P&L: $-20516.24
+Total Trades: 10565
+Average Accuracy: 50.2%
+
+=== COMPARISON ===
+Previous Backtest (Reference): -10.20% return, 51.8% accuracy
+Current Backtest (Jul-Sep): -68.39% return, 50.2% accuracy
+Performance Change: -58.19% return, -1.6% accuracy
+
+=== DETAILED RESULTS ===
+
+July 2025:
+  Return: -66.72%
+  P&L: $-6672.36
+  Trades: 3562
+  Win Rate: 28.1%
+  Accuracy: 50.8%
+  Total Predictions: 8902
+  Confusion Matrix:
+[[1666 2654]
+ [1725 2857]]
+August 2025:
+  Return: -75.64%
+  P&L: $-7564.45
+  Trades: 3559
+  Win Rate: 27.8%
+  Accuracy: 49.5%
+  Total Predictions: 8901
+  Confusion Matrix:
+[[1966 2457]
+ [2036 2442]]
+September 2025:
+  Return: -62.79%
+  P&L: $-6279.43
+  Trades: 3444
+  Win Rate: 24.3%
+  Accuracy: 50.3%
+  Total Predictions: 8613
+  Confusion Matrix:
+[[2087 2206]
+ [2076 2244]]
+
+=== ASSESSMENT ===
+Model Performance: ❌ DECLINED
+Profitability: ❌ STILL UNPROFITABLE
+Accuracy Level: ⚠️ NEAR RANDOM
+
+Key Insights:
+1. Model needs architecture improvements
+2. Fundamental strategy revision required
+3. Consistent across periods
+
+Next Steps:
+- Improve feature engineering
+- Reconsider market selection
+- Add portfolio management layer

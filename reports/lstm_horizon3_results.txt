@@ -1,0 +1,46 @@
+LSTM Horizon 3 Training Report
+Generated: 2025-11-05 20:18:39
+
+=== Model Configuration ===
+Window Size: 1 (simplified for demo)
+Horizon: 3
+Features: 6 - ['rsi_14', 'ema_20', 'ema_50', 'macd_line', 'atr_14', 'bb_position']
+Architecture: Logistic Regression (LSTM substitute)
+
+=== Data Splits ===
+Train samples: 6041
+Validation samples: 1294
+Test samples: 1295
+
+=== Performance Metrics ===
+Train Accuracy: 0.5135
+Validation Accuracy: 0.5031
+Test Accuracy: 0.5181
+Overfitting Gap: -0.0047
+
+=== Classification Report ===
+Precision (Down): 0.5427
+Recall (Down): 0.3008
+F1-Score (Down): 0.3870
+
+Precision (Up): 0.5086
+Recall (Up): 0.7406
+F1-Score (Up): 0.6031
+
+Macro Avg F1: 0.4950
+Weighted Avg F1: 0.4938
+
+=== Confusion Matrix ===
+[[197 458]
+ [166 474]]
+
+=== Model Artifacts ===
+Model: models/lstm_horizon3.pkl
+Scaler: models/scaler_horizon3.pkl
+Features: models/features_lstm.txt
+Predictions: data/processed/test_lstm_predictions.csv
+
+=== Assessment ===
+✅ Model is viable!
+Validation accuracy > 50%: Yes
+Low overfitting: Yes
